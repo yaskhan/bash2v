@@ -20,7 +20,11 @@ pub fn expand_param_values(mut state State, param ParamExpansion, quoted bool) !
     if param.array_mode != .none {
         values := resolve_param_array_values(state, param)!
         if param.array_mode == .all_star {
-            return [values.join(' ')]
+            joined := values.join(' ')
+            if quoted {
+                return [joined]
+            }
+            return split_fields(joined)
         }
         if quoted {
             return values
@@ -134,6 +138,27 @@ fn apply_param_op(mut state State, input string, op ParamOp) !string {
             input
         }
     }
+}
+
+fn split_fields(input string) []string {
+    mut fields := []string{}
+    mut start := -1
+    for idx, ch in input {
+        if ch in [` `, `\t`, `\n`] {
+            if start >= 0 {
+                fields << input[start..idx]
+                start = -1
+            }
+            continue
+        }
+        if start < 0 {
+            start = idx
+        }
+    }
+    if start >= 0 {
+        fields << input[start..]
+    }
+    return fields
 }
 
 fn expand_default_value(mut state State, param ParamExpansion, op ParamOpDefaultValue) !string {

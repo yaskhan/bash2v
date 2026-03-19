@@ -133,11 +133,11 @@ fn gen_while(stmt lower.WhileIR) string {
 fn gen_for_in(stmt lower.ForInIR) string {
     mut items := []string{}
     for item in stmt.items {
-        items << gen_word_expr(item)
+        items << gen_word_value(item)
     }
     iter_name := 'bash2v_item_${stmt.name}'
     mut lines := []string{}
-    lines << 'for ${iter_name} in [${items.join(", ")}] {'
+    lines << 'for ${iter_name} in bashrt.eval_words_to_argv(mut st, [${items.join(", ")}])! {'
     lines << "\tbashrt.set_scalar(mut st, '${stmt.name}', ${iter_name})"
     for item in stmt.body.stmts {
         lines << indent_block(gen_stmt(item), '\t')

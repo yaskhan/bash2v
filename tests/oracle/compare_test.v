@@ -194,6 +194,20 @@ done'
     assert transpiled_result.stdout == bash_result.stdout
 }
 
+fn test_bash_and_transpiled_match_for_for_in_with_unquoted_array_all_star() {
+    source := r'arr=( i1 i2 "i3 i4" )
+for i in ${arr[*]}; do
+echo "i=$i"
+done'
+
+    bash_result := run_bash_source('for_in_array_star_case', source) or { panic(err) }
+    transpiled_result := run_transpiled_source('for_in_array_star_case', source) or { panic(err) }
+
+    assert bash_result.status == 0
+    assert transpiled_result.status == 0
+    assert transpiled_result.stdout == bash_result.stdout
+}
+
 fn test_bash_and_transpiled_match_for_plain_dollar_expansion() {
     source := r'name=world
 value=42

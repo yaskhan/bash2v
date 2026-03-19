@@ -168,6 +168,15 @@ done')
     assert result.output == 'one\ntwo words\nthree\n'
 }
 
+fn test_generated_v_can_run_for_in_with_unquoted_array_all_star() {
+    result := transpile_and_run('generated_for_in_array_star.v', r'arr=( i1 i2 "i3 i4" )
+for i in ${arr[*]}; do
+echo "i=$i"
+done')
+    assert result.exit_code == 0
+    assert result.output == 'i=i1\ni=i2\ni=i3\ni=i4\n'
+}
+
 fn test_generated_v_can_run_plain_dollar_expansion() {
     result := transpile_and_run('generated_plain_dollar.v', r'name=world
 value=42

@@ -168,6 +168,22 @@ fn test_eval_word_values_with_array_all_items_modes() {
     assert at == ['item1', 'item2', 'word3 word4']
 }
 
+fn test_eval_word_values_with_unquoted_array_all_star_splits_fields() {
+    mut state := new_state()
+    append_indexed_values(mut state, 'arr', ['i1', 'i2', 'i3 i4'])
+
+    values := eval_word_values(mut state, Word{
+        fragments: [
+            WordFragment(ParamExpansion{
+                name: 'arr'
+                array_mode: .all_star
+            }),
+        ]
+    }) or { panic(err) }
+
+    assert values == ['i1', 'i2', 'i3', 'i4']
+}
+
 fn test_eval_words_to_argv_preserves_quoted_array_all_at_as_multiple_arguments() {
     mut state := new_state()
     append_indexed_values(mut state, 'arr', ['item1', 'item2', 'word3 word4'])
@@ -191,6 +207,24 @@ fn test_eval_words_to_argv_preserves_quoted_array_all_at_as_multiple_arguments()
     ]) or { panic(err) }
 
     assert argv == ['echo', 'item1', 'item2', 'word3 word4']
+}
+
+fn test_eval_words_to_argv_splits_unquoted_array_all_star_for_for_in_items() {
+    mut state := new_state()
+    append_indexed_values(mut state, 'arr', ['i1', 'i2', 'i3 i4'])
+
+    values := eval_words_to_argv(mut state, [
+        Word{
+            fragments: [
+                WordFragment(ParamExpansion{
+                    name: 'arr'
+                    array_mode: .all_star
+                }),
+            ]
+        },
+    ]) or { panic(err) }
+
+    assert values == ['i1', 'i2', 'i3', 'i4']
 }
 
 fn test_eval_word_with_single_quotes_inside_double_quotes() {

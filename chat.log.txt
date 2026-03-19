@@ -653,3 +653,96 @@
 [2026-03-19 11:42:00 UTC] DECISION
 - Execution path теперь готов к другим multi-value expansion scenarios, не только к quoted array `@`.
 - Следующий логичный шаг: распространять этот же подход на более общую shell word-splitting semantics и затем на `&&` / `||`.
+
+[2026-03-19 12:54:46 UTC] USER
+- Запрос: освежить документы `chat.log.txt` и `README.md`.
+
+[2026-03-19 12:54:46 UTC] ASSISTANT SUMMARY
+- CLI переведён на `flag`-parser.
+- Командный стиль заменён на опции:
+- default mode -> implicit `-t`
+- `-c` -> check
+- `-a` -> AST dump
+- `-i` -> IR dump
+- `-r` -> transpile-and-run
+- `-b` -> короткий alias для `--bundle-runtime`
+- Для transpile без `-o` включён default output path:
+- `script.sh` -> `script.v`
+- `script.bash` -> `script.v`
+- `script` -> `script.v`
+- `Makefile` расширен:
+- `make main` -> `./bin/bash2v` с `-prod`
+- `make simple` -> `./bin/bash2v` без `-prod`
+- `make bundle` -> `./bin/bash2v_static`
+- `make static` сохранён как alias на `make bundle`
+- README синхронизирован с текущим CLI и build flow.
+
+[2026-03-19 12:54:46 UTC] STATUS
+- Реально проверены:
+- `v test /home/margo/dev/bash2v/bash2v/cli`
+- `v test /home/margo/dev/bash2v/tests/e2e/transpile_test.v`
+- `make main`
+- `make simple`
+- `make bundle`
+- `make static`
+
+[2026-03-19 12:54:46 UTC] DECISION
+- CLI теперь документируется как option-driven interface, а не subcommand interface.
+- Рекомендуемый короткий portable workflow: `./bin/bash2v -b ./hello.sh`.
+
+[2026-03-19 12:54:46 UTC] USER
+- Сообщение о регрессии:
+- `arr=( i1 i2 "i3 i4" ); for i in ${arr[*]}; do echo "i=$i"; done`
+- ожидание: `i=i1`, `i=i2`, `i=i3`, `i=i4`
+- фактическое поведение до фикса: один проход с `i=i1 i2 i3 i4`
+
+[2026-03-19 12:54:46 UTC] ASSISTANT SUMMARY
+- Исправлена unquoted `${arr[*]}` semantics для `for ... in`.
+- Причины были две:
+- runtime для unquoted `${arr[*]}` делал join по пробелу, но не делал field splitting
+- codegen для `for ... in` строил список через одиночный `eval_word(...)`, а не через multi-value expansion
+- В runtime добавлен минимальный field splitting для unquoted `${arr[*]}`.
+- `for ... in` теперь генерируется через `bashrt.eval_words_to_argv(...)`, поэтому список элементов совпадает с execution path команд.
+
+[2026-03-19 12:54:46 UTC] STATUS
+- Добавлены регрессионные проверки в:
+- `bash2v/bashrt/runtime_test.v`
+- `bash2v/codegen/codegen_test.v`
+- `tests/e2e/compile_run_test.v`
+- `tests/oracle/compare_test.v`
+- Проверено:
+- `v test /home/margo/dev/bash2v/bash2v`
+- `v test /home/margo/dev/bash2v/tests/e2e/compile_run_test.v`
+- `v test /home/margo/dev/bash2v/tests/oracle/compare_test.v`
+
+[2026-03-19 12:54:46 UTC] USER
+- Запрос: проверить, что
+- `arr=( i1 i2 "i3 i4" ); for i in "${arr[@]}"; do echo "i=$i"; done`
+- выдаёт:
+- `i=i1`
+- `i=i2`
+- `i=i3 i4`
+
+[2026-03-19 12:54:46 UTC] ASSISTANT SUMMARY
+- Проверено эталонное Bash-поведение:
+- `bash -lc 'arr=( i1 i2 "i3 i4" ); for i in "${arr[@]}"; do echo "i=$i"; done'`
+- результат:
+- `i=i1`
+- `i=i2`
+- `i=i3 i4`
+- Исходники проекта уже вели себя так же.
+- Наблюдавшееся расхождение было только в устаревшем `./bin/bash2v`, собранном до последних фиксов.
+- После `make main` пересобранный `./bin/bash2v -r tests/e2e/tmp/quoted_array_for_in_case.bash` даёт корректный результат.
+
+[2026-03-19 12:54:46 UTC] STATUS
+- Дополнительно подтверждено:
+- `v test /home/margo/dev/bash2v/tests/oracle/compare_test.v`
+- `make main`
+- `./bin/bash2v -r tests/e2e/tmp/quoted_array_for_in_case.bash`
+
+[2026-03-19 12:54:46 UTC] DECISION
+- Текущая documented semantics для массивов:
+- quoted `"${arr[@]}"` -> сохраняет element boundaries
+- quoted `"${arr[*]}"` -> один аргумент с join по пробелу
+- unquoted `${arr[*]}` в `for ... in` -> split по shell fields
+- Документация должна ссылаться на option-style CLI и на эти уже проверенные array/for-in guarantees.

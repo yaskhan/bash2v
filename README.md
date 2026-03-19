@@ -60,12 +60,41 @@ It writes:
 
 `make static` remains as an alias of `make bundle`.
 
+The convenience targets are:
+
+- `make main` -> optimized `./bin/bash2v`
+- `make simple` -> debug `./bin/bash2v`
+- `make bundle` -> optimized `./bin/bash2v_static`
+- `make static` -> alias for `make bundle`
+
 ## Transpile And Run
+
+The CLI is option-driven:
+
+- no mode flag means transpile mode (`-t`)
+- `-c` checks parse/lower only
+- `-a` prints AST
+- `-i` prints lowered IR
+- `-r` transpiles and runs immediately
+- `-b` is the short form of `--bundle-runtime`
 
 Given a Bash script `b.sh`, transpile it into `b.v` like this:
 
 ```bash
 ./bin/bash2v ./b.sh -o ./b.v
+```
+
+The `-o` flag is optional in transpile mode. If omitted, `bash2v` derives the output path automatically:
+
+- `script.sh` -> `script.v`
+- `script.bash` -> `script.v`
+- `script` -> `script.v`
+
+So the shortest normal transpile flow is:
+
+```bash
+./bin/bash2v ./b.sh
+v run ./b.v
 ```
 
 Then run the generated V program from the repository root:
@@ -118,6 +147,13 @@ If you move only the `bash2v` binary to another server, then:
 The simplest portable workflow is `--bundle-runtime` or `-b`:
 
 ```bash
+./bash2v -b ./hello.sh
+v run ./hello.v
+```
+
+If you want an explicit output directory:
+
+```bash
 ./bash2v -b ./hello.sh -o ./out/hello.v
 cd ./out
 v run ./hello.v
@@ -148,6 +184,31 @@ So outside this checkout you must either:
 - install/copy these modules into your V module search path before running `v run b.v`
 
 If you do not use `--bundle-runtime`, then you must provide `bash2v.bashrt` and `v_scr` yourself.
+
+## Array Expansion Notes
+
+The current runtime and codegen are verified against Bash for these array cases:
+
+- `"${arr[@]}"` preserves element boundaries
+- `"${arr[*]}"` becomes one argument joined by spaces
+- unquoted `${arr[*]}` in `for ... in` is split into shell fields
+
+For example:
+
+```bash
+arr=( i1 i2 "i3 i4" )
+for i in "${arr[@]}"; do
+  echo "i=$i"
+done
+```
+
+prints:
+
+```text
+i=i1
+i=i2
+i=i3 i4
+```
 
 ## Direct Execution
 

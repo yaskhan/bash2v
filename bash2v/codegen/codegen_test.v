@@ -98,7 +98,7 @@ fn test_generate_for_in_statement() {
     program := parser.parse_program() or { panic(err) }
     lowered := lower.lower_program(program) or { panic(err) }
     generated := generate(lowered)
-    assert generated.contains('for bash2v_item_item in [')
+    assert generated.contains('for bash2v_item_item in bashrt.eval_words_to_argv(mut st, [')
     assert generated.contains("bashrt.set_scalar(mut st, 'item', bash2v_item_item)")
 }
 
