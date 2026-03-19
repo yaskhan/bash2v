@@ -33,6 +33,9 @@ pub fn lower_stmt(stmt ast.Stmt) ![]StmtIR {
         ast.WhileStmt {
             return [StmtIR(lower_while_stmt(stmt)!)]
         }
+        ast.ForInStmt {
+            return [StmtIR(lower_for_in_stmt(stmt)!)]
+        }
     }
 }
 
@@ -72,6 +75,9 @@ fn lower_pipeline(pipeline ast.Pipeline) !PipelineIR {
             ast.WhileStmt {
                 return error('while statements are not valid pipeline steps')
             }
+            ast.ForInStmt {
+                return error('for statements are not valid pipeline steps')
+            }
         }
     }
     return PipelineIR{
@@ -90,6 +96,18 @@ fn lower_if_stmt(stmt ast.IfStmt) !IfIR {
 fn lower_while_stmt(stmt ast.WhileStmt) !WhileIR {
     return WhileIR{
         condition: lower_stmt_block(stmt.condition)!
+        body: lower_stmt_block(stmt.body)!
+    }
+}
+
+fn lower_for_in_stmt(stmt ast.ForInStmt) !ForInIR {
+    mut items := []WordExpr{}
+    for item in stmt.items {
+        items << lower_word(item)!
+    }
+    return ForInIR{
+        name: stmt.name
+        items: items
         body: lower_stmt_block(stmt.body)!
     }
 }

@@ -425,3 +425,34 @@
 
 [2026-03-19 09:31:09 UTC] DECISION
 - Следующий логичный шаг: `for name in ...; do ...; done`, а затем отдельным проходом plain `$VAR` expansion, чтобы цикл-тесты и shell surface area стали ближе к естественному Bash стилю.
+
+[2026-03-19 09:36:58 UTC] USER
+- `continue`
+
+[2026-03-19 09:36:58 UTC] ASSISTANT SUMMARY
+- Реализован `for name in ...; do ...; done` для word-list iteration.
+- Для этого расширены:
+- AST (`ForInStmt`)
+- parser block parsing для `for <name> in <words...> do ... done`
+- lowering IR (`ForInIR`)
+- codegen в V loop по массиву evaluated words
+- Runtime не потребовал нового execution primitive: loop variable просто устанавливается через `bashrt.set_scalar(...)` на каждой итерации, а тело исполняется уже существующими statement paths.
+- В codegen исправлено имя временной loop variable, потому что V не допускает локальные переменные, начинающиеся с `_`.
+
+[2026-03-19 09:36:58 UTC] STATUS
+- Добавлены и проходят проверки в:
+- `bash2v/parse/parser_test.v`
+- `bash2v/lower/lower_test.v`
+- `bash2v/codegen/codegen_test.v`
+- `tests/e2e/compile_run_test.v`
+- `tests/oracle/compare_test.v`
+- `for-in` подтвержден e2e и oracle compare против Bash на сценарии:
+- `for item in one "two words" three; do`
+- `echo "${item}"`
+- `done`
+- Полный регресс зелёный:
+- `v test /home/margo/dev/bash2v/bash2v` -> `6 passed, 6 total`
+- `v test /home/margo/dev/bash2v/tests` -> `3 passed, 3 total`
+
+[2026-03-19 09:36:58 UTC] DECISION
+- Следующий логичный шаг: plain `$VAR` expansion, потому что сейчас control-flow уже достаточно широкий, а отсутствие `$VAR` остаётся заметным ergonomic gap в обычном bash-коде.

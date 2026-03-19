@@ -117,7 +117,14 @@ pub:
     body      ProgramIR
 }
 
-pub type StmtIR = SetVarIR | ExecIR | PipelineIR | IfIR | WhileIR
+pub struct ForInIR {
+pub:
+    name  string
+    items []WordExpr
+    body  ProgramIR
+}
+
+pub type StmtIR = SetVarIR | ExecIR | PipelineIR | IfIR | WhileIR | ForInIR
 
 pub struct ProgramIR {
 pub:
@@ -277,6 +284,17 @@ pub fn stmt_ir_debug(stmt StmtIR) string {
                 body << stmt_ir_debug(item)
             }
             'while(${cond.join(" ; ")} => ${body.join(" ; ")})'
+        }
+        ForInIR {
+            mut items := []string{}
+            for item in stmt.items {
+                items << word_expr_debug(item)
+            }
+            mut body := []string{}
+            for item in stmt.body.stmts {
+                body << stmt_ir_debug(item)
+            }
+            'for(${stmt.name} in ${items.join(" ")} => ${body.join(" ; ")})'
         }
     }
 }

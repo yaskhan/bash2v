@@ -100,6 +100,13 @@ fn test_lower_while_statement() {
     assert program_ir_debug(program_ir) == 'while(exec(argv=[lit([), dq(param(i; op=noop)), lit(-lt), lit(3), lit(])]) => set(i=arith(i + 1); kind=scalar) ; exec(argv=[lit(echo), dq(param(i; op=noop))]))'
 }
 
+fn test_lower_for_in_statement() {
+    mut parser := parse.new_parser(lex.tokenize(r'for item in one "two words" three; do echo "${item}"; done'))
+    program := parser.parse_program() or { panic(err) }
+    program_ir := lower_program(program) or { panic(err) }
+    assert program_ir_debug(program_ir) == 'for(item in lit(one) dq(lit(two) + lit( ) + lit(words)) lit(three) => exec(argv=[lit(echo), dq(param(item; op=noop))]))'
+}
+
 fn test_lower_default_value_expansion() {
     mut parser := parse.new_parser(lex.tokenize(r'echo "${name:=fallback}" "${name:-other}"'))
     program := parser.parse_program() or { panic(err) }

@@ -75,6 +75,17 @@ pub fn stmt_debug(stmt Stmt) string {
             }
             'while(${cond.join(" ; ")} => ${body.join(" ; ")})'
         }
+        ForInStmt {
+            mut items := []string{}
+            for item in stmt.items {
+                items << word_debug(item)
+            }
+            mut body := []string{}
+            for item in stmt.body {
+                body << stmt_debug(item)
+            }
+            'for(${stmt.name} in ${items.join(" ")} => ${body.join(" ; ")})'
+        }
     }
 }
 

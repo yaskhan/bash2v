@@ -32,6 +32,47 @@ fn (mut parser Parser) parse_while_stmt() !ast.WhileStmt {
     }
 }
 
+fn (mut parser Parser) parse_for_in_stmt() !ast.ForInStmt {
+    parser.expect_word('for')!
+    parser.skip_inline_layout()
+    name_tok := parser.current()
+    if name_tok.kind != .word {
+        return error('expected loop variable')
+    }
+    name := name_tok.text
+    parser.advance()
+    parser.skip_statement_separators()
+    parser.expect_word('in')!
+    mut items := []ast.Word{}
+    for !parser.done() {
+        parser.skip_inline_layout()
+        if parser.current_is_stop_word(['do']) {
+            break
+        }
+        if parser.current().kind in [.semicolon, .newline] {
+            parser.skip_statement_separators()
+            if parser.current_is_stop_word(['do']) {
+                break
+            }
+            continue
+        }
+        word := parser.parse_word()!
+        if word.parts.len == 0 {
+            break
+        }
+        items << word
+    }
+    parser.skip_statement_separators()
+    parser.expect_word('do')!
+    body := parser.parse_stmt_sequence_until(['done'])!
+    parser.expect_word('done')!
+    return ast.ForInStmt{
+        name: name
+        items: items
+        body: body
+    }
+}
+
 fn (mut parser Parser) parse_stmt_sequence_until(stop_words []string) ![]ast.Stmt {
     mut stmts := []ast.Stmt{}
     for !parser.done() {

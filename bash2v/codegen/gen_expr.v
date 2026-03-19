@@ -108,6 +108,9 @@ fn gen_eval_stmt(stmt lower.StmtIR) string {
         lower.WhileIR {
             panic('while statements are not supported inside EvalProgram')
         }
+        lower.ForInIR {
+            panic('for statements are not supported inside EvalProgram')
+        }
     }
 }
 

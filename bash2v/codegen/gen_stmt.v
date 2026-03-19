@@ -9,6 +9,7 @@ pub fn gen_stmt(stmt lower.StmtIR) string {
         lower.PipelineIR { gen_pipeline(stmt) }
         lower.IfIR { gen_if(stmt) }
         lower.WhileIR { gen_while(stmt) }
+        lower.ForInIR { gen_for_in(stmt) }
     }
 }
 
@@ -120,6 +121,22 @@ fn gen_while(stmt lower.WhileIR) string {
     lines << '\tif bashrt.eval_program_status(mut st, ${gen_eval_program(stmt.condition)})! != 0 {'
     lines << '\t\tbreak'
     lines << '\t}'
+    for item in stmt.body.stmts {
+        lines << indent_block(gen_stmt(item), '\t')
+    }
+    lines << '}'
+    return lines.join('\n')
+}
+
+fn gen_for_in(stmt lower.ForInIR) string {
+    mut items := []string{}
+    for item in stmt.items {
+        items << gen_word_expr(item)
+    }
+    iter_name := 'bash2v_item_${stmt.name}'
+    mut lines := []string{}
+    lines << 'for ${iter_name} in [${items.join(", ")}] {'
+    lines << "\tbashrt.set_scalar(mut st, '${stmt.name}', ${iter_name})"
     for item in stmt.body.stmts {
         lines << indent_block(gen_stmt(item), '\t')
     }

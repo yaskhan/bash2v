@@ -182,3 +182,9 @@ fn test_parse_while_statement() {
     program := parser.parse_program() or { panic(err) }
     assert ast.program_debug(program) == 'while(cmd(words=[lit([), dq(param(i; op=noop)), lit(-lt), lit(3), lit(])]) => assign(i=arith(i + 1)) ; cmd(words=[lit(echo), dq(param(i; op=noop))]))'
 }
+
+fn test_parse_for_in_statement() {
+    mut parser := new_parser(lex.tokenize(r'for item in one "two words" three; do echo "${item}"; done'))
+    program := parser.parse_program() or { panic(err) }
+    assert ast.program_debug(program) == 'for(item in lit(one) dq(lit(two) + lit( ) + lit(words)) lit(three) => cmd(words=[lit(echo), dq(param(item; op=noop))]))'
+}

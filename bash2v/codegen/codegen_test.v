@@ -83,3 +83,12 @@ fn test_generate_while_statement() {
     assert generated.contains('if bashrt.eval_program_status(mut st, bashrt.EvalProgram')
     assert generated.contains("bashrt.set_scalar(mut st, 'i'")
 }
+
+fn test_generate_for_in_statement() {
+    mut parser := parse.new_parser(lex.tokenize(r'for item in one "two words" three; do echo "${item}"; done'))
+    program := parser.parse_program() or { panic(err) }
+    lowered := lower.lower_program(program) or { panic(err) }
+    generated := generate(lowered)
+    assert generated.contains('for bash2v_item_item in [')
+    assert generated.contains("bashrt.set_scalar(mut st, 'item', bash2v_item_item)")
+}

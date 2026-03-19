@@ -55,3 +55,10 @@ pub:
     condition []Stmt
     body      []Stmt
 }
+
+pub struct ForInStmt {
+pub:
+    name  string
+    items []Word
+    body  []Stmt
+}
