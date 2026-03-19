@@ -127,3 +127,26 @@
 - Top-level generated V уже можно transpile-ить и запускать.
 - Nested `$()` теперь не только парсится, но и имеет runtime capture semantics с trimming trailing newlines.
 - Следующий логичный шаг: расширять реальную execution semantics для pipelines и внешних команд поверх `v_scr`, вместо текущих stub helpers.
+
+[2026-03-19 07:27:02 UTC] ASSISTANT SUMMARY
+- В проект вендорен локальный модуль `v_scr`.
+- `bashrt` execution backend переведен с stub helpers на реальный `v_scr` backend для внешних команд и pipelines.
+- Добавлен working `bash2v run <script>` path через transpile + generated V execution.
+- Добавлена runtime-поддержка `declare -A` и `declare -a` для согласования array semantics с Bash.
+- Oracle compare теперь реально гоняет один и тот же script source через Bash и через transpiled V.
+
+[2026-03-19 07:27:02 UTC] STATUS
+- Проверки прошли:
+- `v test /home/margo/dev/bash2v/bash2v` -> `6 passed, 6 total`
+- `v test /home/margo/dev/bash2v/tests` -> `3 passed, 3 total`
+- `tests/e2e/compile_run_test.v` покрывает:
+- top-level `echo`
+- pipeline execution
+- nested command substitution
+- indexed + associative arrays
+- complex parameter expansion
+- `tests/oracle/compare_test.v` сравнивает Bash и transpiled V на поддерживаемом сценарии с indirect expansion, lower-all, indexed array, associative array и key enumeration.
+
+[2026-03-19 07:27:02 UTC] DECISION
+- Ассоциативные массивы теперь подтверждены не только runtime-тестами, но и oracle compare против Bash через `declare -A`.
+- Следующий логичный шаг: расширять unsupported shell surface area, начиная с более полной builtins/model для declarations, then heredoc/functions/arithmetic only if scope remains intentional.
