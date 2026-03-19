@@ -23,6 +23,13 @@ fn test_lower_pipeline() {
     assert program_ir_debug(program_ir) == 'pipeline(exec(argv=[lit(echo), lit(hello)]) | exec(argv=[lit(grep), lit(h)]))'
 }
 
+fn test_lower_and_or_list() {
+    mut parser := parse.new_parser(lex.tokenize('false && echo no || echo yes'))
+    program := parser.parse_program() or { panic(err) }
+    program_ir := lower_program(program) or { panic(err) }
+    assert program_ir_debug(program_ir) == 'andor(exec(argv=[lit(false)]) && exec(argv=[lit(echo), lit(no)]) || exec(argv=[lit(echo), lit(yes)]))'
+}
+
 fn test_lower_assignment_statement() {
     stmt := ast.Stmt(ast.AssignmentStmt{
         assignments: [

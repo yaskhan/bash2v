@@ -111,6 +111,23 @@ pub:
     steps []ExecIR
 }
 
+pub enum LogicalOpIR {
+    and_if
+    or_if
+}
+
+pub struct AndOrArmIR {
+pub:
+    op      LogicalOpIR
+    program ProgramIR
+}
+
+pub struct AndOrIR {
+pub:
+    first ProgramIR
+    items []AndOrArmIR
+}
+
 pub struct IfIR {
 pub:
     condition ProgramIR
@@ -135,7 +152,7 @@ pub struct BreakIR {}
 
 pub struct ContinueIR {}
 
-pub type StmtIR = SetVarIR | ExecIR | PipelineIR | IfIR | WhileIR | ForInIR | BreakIR | ContinueIR
+pub type StmtIR = SetVarIR | ExecIR | PipelineIR | AndOrIR | IfIR | WhileIR | ForInIR | BreakIR | ContinueIR
 
 pub struct ProgramIR {
 pub:
@@ -274,6 +291,17 @@ pub fn stmt_ir_debug(stmt StmtIR) string {
                 steps << stmt_ir_debug(StmtIR(item))
             }
             'pipeline(${steps.join(" | ")})'
+        }
+        AndOrIR {
+            mut out := program_ir_debug(stmt.first)
+            for item in stmt.items {
+                op := match item.op {
+                    .and_if { '&&' }
+                    .or_if { '||' }
+                }
+                out += ' ${op} ${program_ir_debug(item.program)}'
+            }
+            'andor(${out})'
         }
         IfIR {
             mut cond := []string{}

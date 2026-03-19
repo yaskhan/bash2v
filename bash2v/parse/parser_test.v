@@ -129,6 +129,12 @@ fn test_parse_program_pipeline() {
     assert ast.program_debug(program) == 'pipeline(cmd(words=[lit(echo), lit(hello)]) | cmd(words=[lit(grep), lit(h)]))'
 }
 
+fn test_parse_program_and_or_list() {
+    mut parser := new_parser(lex.tokenize('false && echo no || echo yes'))
+    program := parser.parse_program() or { panic(err) }
+    assert ast.program_debug(program) == 'andor(cmd(words=[lit(false)]) && cmd(words=[lit(echo), lit(no)]) || cmd(words=[lit(echo), lit(yes)]))'
+}
+
 fn test_parse_program_indexed_and_assoc_assignments() {
     mut parser := new_parser(lex.tokenize("arr[3]=value\nmap[foo]=bar"))
     program := parser.parse_program() or { panic(err) }

@@ -5,35 +5,45 @@ pub fn expand_param(mut state State, param ParamExpansion) !string {
 }
 
 pub fn expand_param_values(mut state State, param ParamExpansion, quoted bool) ![]string {
+    return finalize_expanded_words(expand_param_words(mut state, param, quoted)!)
+}
+
+fn expand_param_words(mut state State, param ParamExpansion, quoted bool) ![]ExpandedWord {
     if param.count_items && param.op is ParamOpLength {
-        return [count_items(state, param.name)!]
+        return [expanded_word_value(count_items(state, param.name)!, quoted)]
     }
     if param.op is ParamOpDefaultValue {
-        return [expand_default_value(mut state, param, param.op)!]
+        return [expanded_word_value(expand_default_value(mut state, param, param.op)!, quoted)]
     }
     if param.op is ParamOpAlternativeValue {
-        return [expand_alternative_value(mut state, param, param.op)!]
+        return [expanded_word_value(expand_alternative_value(mut state, param, param.op)!, quoted)]
     }
     if param.op is ParamOpRequiredValue {
-        return [expand_required_value(mut state, param, param.op)!]
+        return [expanded_word_value(expand_required_value(mut state, param, param.op)!, quoted)]
     }
     if param.array_mode != .none {
         values := resolve_param_array_values(state, param)!
         if param.array_mode == .all_star {
-            joined := values.join(' ')
-            if quoted {
-                return [joined]
-            }
-            return split_fields(joined)
+            return [expanded_word_value(values.join(' '), quoted)]
         }
-        if quoted {
-            return values
+        mut out := []ExpandedWord{}
+        for value in values {
+            out << expanded_word_value(value, quoted)
         }
-        return values
+        return out
     }
     mut value := resolve_param_value(mut state, param)!
     value = apply_param_op(mut state, value, param.op)!
-    return [value]
+    return [expanded_word_value(value, quoted)]
+}
+
+fn expanded_word_value(value string, quoted bool) ExpandedWord {
+    return ExpandedWord{
+        parts: [WordValue{
+            text: value
+            quoted: quoted
+        }]
+    }
 }
 
 fn resolve_param_value(mut state State, param ParamExpansion) !string {
@@ -140,26 +150,6 @@ fn apply_param_op(mut state State, input string, op ParamOp) !string {
     }
 }
 
-fn split_fields(input string) []string {
-    mut fields := []string{}
-    mut start := -1
-    for idx, ch in input {
-        if ch in [` `, `\t`, `\n`] {
-            if start >= 0 {
-                fields << input[start..idx]
-                start = -1
-            }
-            continue
-        }
-        if start < 0 {
-            start = idx
-        }
-    }
-    if start >= 0 {
-        fields << input[start..]
-    }
-    return fields
-}
 
 fn expand_default_value(mut state State, param ParamExpansion, op ParamOpDefaultValue) !string {
     exists, value := resolve_param_slot(mut state, param)!

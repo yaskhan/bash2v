@@ -27,6 +27,13 @@ fn test_plain_dollar_variable_is_split_into_dollar_and_word() {
     assert tokens[3].text == 'name'
 }
 
+fn test_logical_operator_tokens_are_scanned() {
+    tokens := tokenize('true && false || echo hi')
+    kinds := tokens.map(it.kind)
+    assert kinds.contains(.amp_amp)
+    assert kinds.contains(.pipe_pipe)
+}
+
 fn test_single_quote_inside_double_quotes_is_literal_text() {
     source := "\"" + "'" + r'${arr[0]}' + "'" + "\""
     tokens := tokenize(source)

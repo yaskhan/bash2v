@@ -89,28 +89,33 @@ pub:
     quoted bool
 }
 
+struct ExpandedWord {
+    parts []WordValue
+}
+
 pub fn eval_word(mut state State, word Word) !string {
     return eval_word_values(mut state, word)!.join(' ')
 }
 
 pub fn eval_word_values(mut state State, word Word) ![]string {
-    return eval_fragments_values(mut state, word.fragments, false)
+    return finalize_expanded_words(eval_fragments_words(mut state, word.fragments, false)!)
 }
 
-fn eval_fragments_values(mut state State, fragments []WordFragment, quoted bool) ![]string {
-    if fragments.len == 0 {
-        return ['']
-    }
-    mut acc := ['']
+fn eval_fragments_words(mut state State, fragments []WordFragment, quoted bool) ![]ExpandedWord {
+    mut acc := [ExpandedWord{}]
     for fragment in fragments {
-        values := eval_fragment_values(mut state, fragment, quoted)!
+        values := eval_fragment_words(mut state, fragment, quoted)!
         if values.len == 0 {
-            return []string{}
+            return []ExpandedWord{}
         }
-        mut next := []string{}
+        mut next := []ExpandedWord{}
         for prefix in acc {
             for value in values {
-                next << prefix + value
+                mut parts := prefix.parts.clone()
+                parts << value.parts
+                next << ExpandedWord{
+                    parts: parts
+                }
             }
         }
         acc = next.clone()
@@ -118,22 +123,96 @@ fn eval_fragments_values(mut state State, fragments []WordFragment, quoted bool)
     return acc
 }
 
-fn eval_fragment_values(mut state State, fragment WordFragment, quoted bool) ![]string {
+fn finalize_expanded_words(words []ExpandedWord) []string {
+    mut out := []string{}
+    for word in words {
+        out << finalize_expanded_word(word)
+    }
+    return out
+}
+
+fn finalize_expanded_word(word ExpandedWord) []string {
+    mut fields := []string{}
+    mut current := ''
+    mut has_current := false
+    mut current_quoted := false
+
+    for part in word.parts {
+        if part.quoted {
+            if !has_current {
+                has_current = true
+            }
+            current += part.text
+            current_quoted = true
+            continue
+        }
+
+        mut start := 0
+        for idx, ch in part.text {
+            if ch !in [` `, `\t`, `\n`] {
+                continue
+            }
+            if idx > start {
+                if !has_current {
+                    has_current = true
+                }
+                current += part.text[start..idx]
+            }
+            if has_current {
+                if current != '' || current_quoted {
+                    fields << current
+                }
+                current = ''
+                has_current = false
+                current_quoted = false
+            }
+            start = idx + 1
+        }
+        if start < part.text.len {
+            if !has_current {
+                has_current = true
+            }
+            current += part.text[start..]
+        }
+    }
+
+    if has_current && (current != '' || current_quoted) {
+        fields << current
+    }
+    return fields
+}
+
+fn eval_fragment_words(mut state State, fragment WordFragment, quoted bool) ![]ExpandedWord {
     return match fragment {
         LiteralFragment {
-            [fragment.text]
+            [ExpandedWord{
+                parts: [WordValue{
+                    text: fragment.text
+                    quoted: true
+                }]
+            }]
         }
         DoubleQuotedFragment {
-            eval_fragments_values(mut state, fragment.parts, true)!
+            eval_fragments_words(mut state, fragment.parts, true)!
         }
         ParamExpansion {
-            expand_param_values(mut state, fragment, quoted)!
+            expand_param_words(mut state, fragment, quoted)!
         }
         CommandSubstFragment {
-            [eval_command_subst(mut state, fragment)!]
+            [ExpandedWord{
+                parts: [WordValue{
+                    text: eval_command_subst(mut state, fragment)!
+                    quoted: quoted
+                }]
+            }]
         }
         ArithmeticFragment {
-            [eval_arithmetic(mut state, fragment.expr)!]
+            [ExpandedWord{
+                parts: [WordValue{
+                    text: eval_arithmetic(mut state, fragment.expr)!
+                    quoted: quoted
+                }]
+            }]
         }
     }
 }

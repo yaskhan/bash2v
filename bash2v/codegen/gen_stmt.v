@@ -7,6 +7,7 @@ pub fn gen_stmt(stmt lower.StmtIR) string {
         lower.SetVarIR { gen_set(stmt) }
         lower.ExecIR { gen_exec(stmt) }
         lower.PipelineIR { gen_pipeline(stmt) }
+        lower.AndOrIR { gen_and_or(stmt) }
         lower.IfIR { gen_if(stmt) }
         lower.WhileIR { gen_while(stmt) }
         lower.ForInIR { gen_for_in(stmt) }
@@ -101,31 +102,50 @@ fn gen_pipeline(stmt lower.PipelineIR) string {
     return 'bashrt.run_pipeline_word_parts(mut st, [${steps.join(", ")}])!'
 }
 
+fn gen_and_or(stmt lower.AndOrIR) string {
+    return 'bashrt.run_and_or(mut st, ${gen_eval_and_or(stmt)})!'
+}
+
 fn gen_if(stmt lower.IfIR) string {
     mut lines := []string{}
-    lines << 'if bashrt.eval_program_status(mut st, ${gen_eval_program(stmt.condition)})! == 0 {'
+    lines << '{'
+    lines << '\tif bashrt.eval_program_condition(mut st, ${gen_eval_program(stmt.condition)})! == 0 {'
+    lines << '\t\tbashrt.set_last_status(mut st, 0)'
     for item in stmt.then_body.stmts {
-        lines << indent_block(gen_stmt(item), '\t')
+        lines << indent_block(gen_stmt(item), '\t\t')
     }
     if stmt.else_body.stmts.len > 0 {
-        lines << '} else {'
+        lines << '\t} else {'
+        lines << '\t\tbashrt.set_last_status(mut st, 0)'
         for item in stmt.else_body.stmts {
-            lines << indent_block(gen_stmt(item), '\t')
+            lines << indent_block(gen_stmt(item), '\t\t')
         }
+    } else {
+        lines << '\t} else {'
+        lines << '\t\tbashrt.set_last_status(mut st, 0)'
     }
+    lines << '\t}'
     lines << '}'
     return lines.join('\n')
 }
 
 fn gen_while(stmt lower.WhileIR) string {
     mut lines := []string{}
-    lines << 'for {'
-    lines << '\tif bashrt.eval_program_status(mut st, ${gen_eval_program(stmt.condition)})! != 0 {'
-    lines << '\t\tbreak'
-    lines << '\t}'
+    lines << '{'
+    lines << '\tmut bash2v_while_ran := false'
+    lines << '\tfor {'
+    lines << '\t\tif bashrt.eval_program_condition(mut st, ${gen_eval_program(stmt.condition)})! != 0 {'
+    lines << '\t\t\tbreak'
+    lines << '\t\t}'
+    lines << '\t\tbash2v_while_ran = true'
+    lines << '\t\tbashrt.set_last_status(mut st, 0)'
     for item in stmt.body.stmts {
-        lines << indent_block(gen_stmt(item), '\t')
+        lines << indent_block(gen_stmt(item), '\t\t')
     }
+    lines << '\t}'
+    lines << '\tif !bash2v_while_ran {'
+    lines << '\t\tbashrt.set_last_status(mut st, 0)'
+    lines << '\t}'
     lines << '}'
     return lines.join('\n')
 }
@@ -137,11 +157,19 @@ fn gen_for_in(stmt lower.ForInIR) string {
     }
     iter_name := 'bash2v_item_${stmt.name}'
     mut lines := []string{}
-    lines << 'for ${iter_name} in bashrt.eval_words_to_argv(mut st, [${items.join(", ")}])! {'
-    lines << "\tbashrt.set_scalar(mut st, '${stmt.name}', ${iter_name})"
+    lines << '{'
+    lines << '\tmut bash2v_for_ran := false'
+    lines << '\tfor ${iter_name} in bashrt.eval_words_to_argv(mut st, [${items.join(", ")}])! {'
+    lines << '\t\tbash2v_for_ran = true'
+    lines << '\t\tbashrt.set_last_status(mut st, 0)'
+    lines << "\t\tbashrt.set_scalar(mut st, '${stmt.name}', ${iter_name})"
     for item in stmt.body.stmts {
-        lines << indent_block(gen_stmt(item), '\t')
+        lines << indent_block(gen_stmt(item), '\t\t')
     }
+    lines << '\t}'
+    lines << '\tif !bash2v_for_ran {'
+    lines << '\t\tbashrt.set_last_status(mut st, 0)'
+    lines << '\t}'
     lines << '}'
     return lines.join('\n')
 }

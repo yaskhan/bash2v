@@ -10,6 +10,9 @@ pub fn lower_stmt(stmt ast.Stmt) ![]StmtIR {
         ast.Pipeline {
             return [StmtIR(lower_pipeline(stmt)!)]
         }
+        ast.AndOrList {
+            return [StmtIR(lower_and_or(stmt)!)]
+        }
         ast.List {
             mut out := []StmtIR{}
             for item in stmt.items {
@@ -72,7 +75,7 @@ fn lower_pipeline(pipeline ast.Pipeline) !PipelineIR {
             ast.AssignmentStmt {
                 return error('assignment-only statements are not valid pipeline steps')
             }
-            ast.Pipeline, ast.List, ast.Subshell {
+            ast.Pipeline, ast.AndOrList, ast.List, ast.Subshell {
                 return error('nested pipeline/list/subshell lowering is not implemented for pipeline steps')
             }
             ast.IfStmt {
@@ -94,6 +97,23 @@ fn lower_pipeline(pipeline ast.Pipeline) !PipelineIR {
     }
     return PipelineIR{
         steps: steps
+    }
+}
+
+fn lower_and_or(stmt ast.AndOrList) !AndOrIR {
+    mut items := []AndOrArmIR{}
+    for item in stmt.items {
+        items << AndOrArmIR{
+            op: match item.op {
+                .and_if { LogicalOpIR.and_if }
+                .or_if { LogicalOpIR.or_if }
+            }
+            program: lower_stmt_block([item.stmt])!
+        }
+    }
+    return AndOrIR{
+        first: lower_stmt_block([stmt.first])!
+        items: items
     }
 }
 

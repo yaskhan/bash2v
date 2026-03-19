@@ -177,6 +177,27 @@ done')
     assert result.output == 'i=i1\ni=i2\ni=i3\ni=i4\n'
 }
 
+fn test_generated_v_can_run_field_splitting_for_unquoted_scalar_and_command_substitution() {
+    result := transpile_and_run('generated_field_splitting.v', r'value="one two"
+printf "<%s>\n" $value "$value"
+printf "<%s>\n" $(echo alpha beta)
+printf "<%s>\n" "$(echo alpha beta)"')
+    assert result.exit_code == 0
+    assert result.output == '<one>\n<two>\n<one two>\n<alpha>\n<beta>\n<alpha beta>\n'
+}
+
+fn test_generated_v_can_run_and_or_short_circuit_lists() {
+    result := transpile_and_run('generated_and_or.v', r'false && echo no
+false || echo yes
+true && echo ok
+true || echo no
+if false || true; then
+echo cond
+fi')
+    assert result.exit_code == 0
+    assert result.output == 'yes\nok\ncond\n'
+}
+
 fn test_generated_v_can_run_plain_dollar_expansion() {
     result := transpile_and_run('generated_plain_dollar.v', r'name=world
 value=42

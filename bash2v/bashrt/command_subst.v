@@ -38,7 +38,24 @@ pub:
     steps []EvalExec
 }
 
-pub type EvalStmt = EvalAssignment | EvalExec | EvalPipeline
+pub enum EvalLogicalOp {
+    and_if
+    or_if
+}
+
+pub struct EvalAndOrArm {
+pub:
+    op      EvalLogicalOp
+    program EvalProgram
+}
+
+pub struct EvalAndOr {
+pub:
+    first EvalProgram
+    items []EvalAndOrArm
+}
+
+pub type EvalStmt = EvalAssignment | EvalExec | EvalPipeline | EvalAndOr
 
 pub struct EvalProgram {
 pub:
@@ -121,13 +138,11 @@ pub fn emit_result(result ExecResult) {
     if result.stderr != '' {
         eprint(result.stderr)
     }
-    if result.status != 0 {
-        exit(result.status)
-    }
 }
 
 pub fn run_exec(mut state State, argv []string) ! {
     result := exec_external(mut state, argv)!
+    state.last_status = result.status
     emit_result(result)
 }
 
@@ -142,16 +157,19 @@ pub fn eval_words_to_argv(mut state State, words []Word) ![]string {
 pub fn run_exec_words(mut state State, words []Word) ! {
     argv := eval_words_to_argv(mut state, words)!
     result := exec_external(mut state, argv)!
+    state.last_status = result.status
     emit_result(result)
 }
 
 pub fn run_pipeline_and_emit(mut state State, steps []ExecResult) ! {
     result := exec_pipeline(state, steps)!
+    state.last_status = result.status
     emit_result(result)
 }
 
 pub fn run_pipeline_words(mut state State, commands [][]string) ! {
     result := exec_pipeline_words(state, commands)!
+    state.last_status = result.status
     emit_result(result)
 }
 
@@ -161,7 +179,20 @@ pub fn run_pipeline_word_parts(mut state State, commands [][]Word) ! {
         expanded << eval_words_to_argv(mut state, command)!
     }
     result := exec_pipeline_words(state, expanded)!
+    state.last_status = result.status
     emit_result(result)
+}
+
+pub fn run_and_or(mut state State, stmt EvalAndOr) ! {
+    result := eval_and_or_capture(mut state, stmt)!
+    state.last_status = result.status
+    emit_result(result)
+}
+
+pub fn exit_with_last_status(state State) {
+    if state.last_status != 0 {
+        exit(state.last_status)
+    }
 }
 
 pub fn eval_program_status(mut state State, program EvalProgram) !int {
@@ -174,6 +205,21 @@ pub fn eval_program_status(mut state State, program EvalProgram) !int {
     }
     state.last_status = result.status
     return result.status
+}
+
+pub fn eval_program_condition(mut state State, program EvalProgram) !int {
+    result := eval_program_capture(mut state, program)!
+    if result.stdout != '' {
+        print(result.stdout)
+    }
+    if result.stderr != '' {
+        eprint(result.stderr)
+    }
+    return result.status
+}
+
+pub fn set_last_status(mut state State, status int) {
+    state.last_status = status
 }
 
 fn eval_program_capture(mut state State, program EvalProgram) !ExecResult {
@@ -209,6 +255,9 @@ fn eval_stmt_capture(mut state State, stmt EvalStmt) !ExecResult {
         EvalPipeline {
             eval_pipeline_capture(mut state, stmt)!
         }
+        EvalAndOr {
+            eval_and_or_capture(mut state, stmt)!
+        }
     }
 }
 
@@ -226,6 +275,39 @@ fn eval_pipeline_capture(mut state State, stmt EvalPipeline) !ExecResult {
         commands << eval_words_to_argv(mut state, item.argv)!
     }
     return exec_pipeline_words(state, commands)
+}
+
+fn eval_and_or_capture(mut state State, stmt EvalAndOr) !ExecResult {
+    mut current := eval_program_capture(mut state, stmt.first)!
+    mut stdout := []string{}
+    mut stderr := []string{}
+    if current.stdout != '' {
+        stdout << current.stdout
+    }
+    if current.stderr != '' {
+        stderr << current.stderr
+    }
+    for item in stmt.items {
+        should_run := match item.op {
+            .and_if { current.status == 0 }
+            .or_if { current.status != 0 }
+        }
+        if !should_run {
+            continue
+        }
+        current = eval_program_capture(mut state, item.program)!
+        if current.stdout != '' {
+            stdout << current.stdout
+        }
+        if current.stderr != '' {
+            stderr << current.stderr
+        }
+    }
+    return ExecResult{
+        stdout: stdout.join('')
+        stderr: stderr.join('')
+        status: current.status
+    }
 }
 
 fn apply_eval_assignment(mut state State, stmt EvalAssignment) ! {

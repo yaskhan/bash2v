@@ -111,6 +111,9 @@ fn gen_eval_stmt(stmt lower.StmtIR) string {
         lower.PipelineIR {
             'bashrt.EvalStmt(${gen_eval_pipeline(stmt)})'
         }
+        lower.AndOrIR {
+            'bashrt.EvalStmt(${gen_eval_and_or(stmt)})'
+        }
         lower.IfIR {
             panic('if statements are not supported inside EvalProgram')
         }
@@ -165,6 +168,18 @@ fn gen_eval_pipeline(stmt lower.PipelineIR) string {
         steps << gen_eval_exec(item)
     }
     return 'bashrt.EvalPipeline{ steps: [${steps.join(", ")}] }'
+}
+
+fn gen_eval_and_or(stmt lower.AndOrIR) string {
+    mut items := []string{}
+    for item in stmt.items {
+        op := match item.op {
+            .and_if { 'bashrt.EvalLogicalOp.and_if' }
+            .or_if { 'bashrt.EvalLogicalOp.or_if' }
+        }
+        items << 'bashrt.EvalAndOrArm{ op: ${op}, program: ${gen_eval_program(item.program)} }'
+    }
+    return 'bashrt.EvalAndOr{ first: ${gen_eval_program(stmt.first)}, items: [${items.join(", ")}] }'
 }
 
 fn quote_v_string(input string) string {

@@ -14,6 +14,7 @@ pub fn generate(program lower.ProgramIR) string {
     for stmt in program.stmts {
         out.writeln(indent_block(gen_stmt(stmt), '\t'))
     }
+    out.writeln('\tbashrt.exit_with_last_status(st)')
     out.writeln('}')
     return out.str()
 }

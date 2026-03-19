@@ -53,12 +53,7 @@ pub fn (mut parser Parser) parse_pipeline() !ast.Pipeline {
 
 pub fn (mut parser Parser) parse_list() !ast.List {
     mut items := []ast.Stmt{}
-    pipeline := parser.parse_pipeline()!
-    if pipeline.steps.len == 1 {
-        items << pipeline.steps[0]
-    } else {
-        items << ast.Stmt(pipeline)
-    }
+    items << parser.parse_and_or()!
 
     for !parser.done() {
         parser.skip_inline_layout()
@@ -69,17 +64,53 @@ pub fn (mut parser Parser) parse_list() !ast.List {
         if parser.done() || parser.current().kind == .paren_close {
             break
         }
-        next_pipeline := parser.parse_pipeline()!
-        if next_pipeline.steps.len == 1 {
-            items << next_pipeline.steps[0]
-        } else {
-            items << ast.Stmt(next_pipeline)
-        }
+        items << parser.parse_and_or()!
     }
 
     return ast.List{
         items: items
     }
+}
+
+fn (mut parser Parser) parse_and_or() !ast.Stmt {
+    first_pipeline := parser.parse_pipeline()!
+    first_stmt := stmt_from_pipeline(first_pipeline)
+    mut items := []ast.AndOrArm{}
+
+    for !parser.done() {
+        parser.skip_inline_layout()
+        tok := parser.current()
+        if tok.kind !in [.amp_amp, .pipe_pipe] {
+            break
+        }
+        op := match tok.kind {
+            .amp_amp { ast.LogicalOp.and_if }
+            .pipe_pipe { ast.LogicalOp.or_if }
+            else { return error('unsupported logical operator') }
+        }
+        parser.advance()
+        parser.skip_inline_layout()
+        next_pipeline := parser.parse_pipeline()!
+        items << ast.AndOrArm{
+            op: op
+            stmt: stmt_from_pipeline(next_pipeline)
+        }
+    }
+
+    if items.len == 0 {
+        return first_stmt
+    }
+    return ast.Stmt(ast.AndOrList{
+        first: first_stmt
+        items: items
+    })
+}
+
+fn stmt_from_pipeline(pipeline ast.Pipeline) ast.Stmt {
+    if pipeline.steps.len == 1 {
+        return pipeline.steps[0]
+    }
+    return ast.Stmt(pipeline)
 }
 
 fn (mut parser Parser) parse_command_stmt() !ast.Stmt {

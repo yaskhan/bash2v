@@ -105,12 +105,7 @@ fn (mut parser Parser) parse_stmt_sequence_until(stop_words []string) ![]ast.Stm
         if parser.done() || parser.current_is_stop_word(stop_words) || parser.current().kind == .paren_close {
             break
         }
-        pipeline := parser.parse_pipeline()!
-        if pipeline.steps.len == 1 {
-            stmts << pipeline.steps[0]
-        } else {
-            stmts << ast.Stmt(pipeline)
-        }
+        stmts << parser.parse_and_or()!
         parser.skip_statement_separators()
     }
     return stmts

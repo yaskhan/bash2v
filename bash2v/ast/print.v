@@ -24,6 +24,17 @@ pub fn stmt_debug(stmt Stmt) string {
             }
             'pipeline(${steps.join(" | ")})'
         }
+        AndOrList {
+            mut out := stmt_debug(stmt.first)
+            for item in stmt.items {
+                op := match item.op {
+                    .and_if { '&&' }
+                    .or_if { '||' }
+                }
+                out += ' ${op} ${stmt_debug(item.stmt)}'
+            }
+            'andor(${out})'
+        }
         List {
             mut items := []string{}
             for item in stmt.items {

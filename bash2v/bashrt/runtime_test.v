@@ -184,6 +184,34 @@ fn test_eval_word_values_with_unquoted_array_all_star_splits_fields() {
     assert values == ['i1', 'i2', 'i3', 'i4']
 }
 
+fn test_eval_word_values_with_unquoted_scalar_expansion_splits_fields() {
+    mut state := new_state()
+    set_scalar(mut state, 'value', 'one two')
+
+    values := eval_word_values(mut state, Word{
+        fragments: [
+            WordFragment(ParamExpansion{
+                name: 'value'
+            }),
+        ]
+    }) or { panic(err) }
+
+    quoted_values := eval_word_values(mut state, Word{
+        fragments: [
+            WordFragment(DoubleQuotedFragment{
+                parts: [
+                    WordFragment(ParamExpansion{
+                        name: 'value'
+                    }),
+                ]
+            }),
+        ]
+    }) or { panic(err) }
+
+    assert values == ['one', 'two']
+    assert quoted_values == ['one two']
+}
+
 fn test_eval_words_to_argv_preserves_quoted_array_all_at_as_multiple_arguments() {
     mut state := new_state()
     append_indexed_values(mut state, 'arr', ['item1', 'item2', 'word3 word4'])
@@ -225,6 +253,67 @@ fn test_eval_words_to_argv_splits_unquoted_array_all_star_for_for_in_items() {
     ]) or { panic(err) }
 
     assert values == ['i1', 'i2', 'i3', 'i4']
+}
+
+fn test_eval_word_values_with_unquoted_command_substitution_splits_fields() {
+    mut state := new_state()
+
+    values := eval_word_values(mut state, Word{
+        fragments: [
+            WordFragment(CommandSubstFragment{
+                source: 'echo alpha beta'
+                program: EvalProgram{
+                    stmts: [
+                        EvalStmt(EvalExec{
+                            argv: [
+                                Word{
+                                    fragments: [WordFragment(LiteralFragment{ text: 'echo' })]
+                                },
+                                Word{
+                                    fragments: [WordFragment(LiteralFragment{ text: 'alpha' })]
+                                },
+                                Word{
+                                    fragments: [WordFragment(LiteralFragment{ text: 'beta' })]
+                                },
+                            ]
+                        }),
+                    ]
+                }
+            }),
+        ]
+    }) or { panic(err) }
+
+    quoted_values := eval_word_values(mut state, Word{
+        fragments: [
+            WordFragment(DoubleQuotedFragment{
+                parts: [
+                    WordFragment(CommandSubstFragment{
+                        source: 'echo alpha beta'
+                        program: EvalProgram{
+                            stmts: [
+                                EvalStmt(EvalExec{
+                                    argv: [
+                                        Word{
+                                            fragments: [WordFragment(LiteralFragment{ text: 'echo' })]
+                                        },
+                                        Word{
+                                            fragments: [WordFragment(LiteralFragment{ text: 'alpha' })]
+                                        },
+                                        Word{
+                                            fragments: [WordFragment(LiteralFragment{ text: 'beta' })]
+                                        },
+                                    ]
+                                }),
+                            ]
+                        }
+                    }),
+                ]
+            }),
+        ]
+    }) or { panic(err) }
+
+    assert values == ['alpha', 'beta']
+    assert quoted_values == ['alpha beta']
 }
 
 fn test_eval_word_with_single_quotes_inside_double_quotes() {

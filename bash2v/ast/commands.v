@@ -33,6 +33,23 @@ pub:
     steps []Stmt
 }
 
+pub enum LogicalOp {
+    and_if
+    or_if
+}
+
+pub struct AndOrArm {
+pub:
+    op   LogicalOp
+    stmt Stmt
+}
+
+pub struct AndOrList {
+pub:
+    first Stmt
+    items []AndOrArm
+}
+
 pub struct List {
 pub:
     items []Stmt

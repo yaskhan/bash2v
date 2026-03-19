@@ -208,6 +208,37 @@ done'
     assert transpiled_result.stdout == bash_result.stdout
 }
 
+fn test_bash_and_transpiled_match_for_field_splitting_of_unquoted_scalar_and_command_substitution() {
+    source := r'value="one two"
+printf "<%s>\n" $value "$value"
+printf "<%s>\n" $(echo alpha beta)
+printf "<%s>\n" "$(echo alpha beta)"'
+
+    bash_result := run_bash_source('field_splitting_case', source) or { panic(err) }
+    transpiled_result := run_transpiled_source('field_splitting_case', source) or { panic(err) }
+
+    assert bash_result.status == 0
+    assert transpiled_result.status == 0
+    assert transpiled_result.stdout == bash_result.stdout
+}
+
+fn test_bash_and_transpiled_match_for_and_or_short_circuit_lists() {
+    source := r'false && echo no
+false || echo yes
+true && echo ok
+true || echo no
+if false || true; then
+echo cond
+fi'
+
+    bash_result := run_bash_source('and_or_case', source) or { panic(err) }
+    transpiled_result := run_transpiled_source('and_or_case', source) or { panic(err) }
+
+    assert bash_result.status == 0
+    assert transpiled_result.status == 0
+    assert transpiled_result.stdout == bash_result.stdout
+}
+
 fn test_bash_and_transpiled_match_for_plain_dollar_expansion() {
     source := r'name=world
 value=42

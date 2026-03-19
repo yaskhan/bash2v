@@ -30,6 +30,16 @@ fn test_generate_pipeline_uses_exec_pipeline() {
     assert generated.contains('[bashrt.Word{ fragments:')
 }
 
+fn test_generate_and_or_uses_runtime_short_circuit_helper() {
+    mut parser := parse.new_parser(lex.tokenize('false && echo no || echo yes'))
+    program := parser.parse_program() or { panic(err) }
+    lowered := lower.lower_program(program) or { panic(err) }
+    generated := generate(lowered)
+    assert generated.contains('bashrt.run_and_or(mut st, bashrt.EvalAndOr{')
+    assert generated.contains('bashrt.EvalLogicalOp.and_if')
+    assert generated.contains('bashrt.EvalLogicalOp.or_if')
+}
+
 fn test_generate_default_value_expansion() {
     mut parser := parse.new_parser(lex.tokenize(r'echo "${name:=fallback}"'))
     program := parser.parse_program() or { panic(err) }
@@ -70,7 +80,7 @@ fn test_generate_if_statement() {
     program := parser.parse_program() or { panic(err) }
     lowered := lower.lower_program(program) or { panic(err) }
     generated := generate(lowered)
-    assert generated.contains('if bashrt.eval_program_status(mut st, bashrt.EvalProgram')
+    assert generated.contains('if bashrt.eval_program_condition(mut st, bashrt.EvalProgram')
     assert generated.contains("bashrt.run_exec_words(mut st, [bashrt.Word{ fragments: [bashrt.WordFragment(bashrt.LiteralFragment{ text: 'echo' })] }, bashrt.Word{ fragments: [bashrt.WordFragment(bashrt.LiteralFragment{ text: 'yes' })] }])!")
 }
 
@@ -89,7 +99,7 @@ fn test_generate_while_statement() {
     lowered := lower.lower_program(program) or { panic(err) }
     generated := generate(lowered)
     assert generated.contains('for {')
-    assert generated.contains('if bashrt.eval_program_status(mut st, bashrt.EvalProgram')
+    assert generated.contains('if bashrt.eval_program_condition(mut st, bashrt.EvalProgram')
     assert generated.contains("bashrt.set_scalar(mut st, 'i'")
 }
 
