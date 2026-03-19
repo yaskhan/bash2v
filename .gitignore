@@ -6,16 +6,6 @@
 *.dylib
 main
 
-# Vlang
-*.v.c
-*.v
-!src/*.v
-!tests/*.v
-
-# Test output
-*.out
-*.tmp
-
 # Logs
 *.log
 
