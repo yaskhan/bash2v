@@ -5,7 +5,6 @@
 *.so
 *.dylib
 main
-bash2v
 
 # Vlang
 *.v.c

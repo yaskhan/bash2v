@@ -150,3 +150,49 @@
 [2026-03-19 07:27:02 UTC] DECISION
 - Ассоциативные массивы теперь подтверждены не только runtime-тестами, но и oracle compare против Bash через `declare -A`.
 - Следующий логичный шаг: расширять unsupported shell surface area, начиная с более полной builtins/model для declarations, then heredoc/functions/arithmetic only if scope remains intentional.
+
+[2026-03-19 07:35:00 UTC] USER
+- `Делай следующий шаг`
+
+[2026-03-19 07:35:00 UTC] ASSISTANT SUMMARY
+- Локализован и исправлен runtime-дефект для `${#arr[@]}` и `${#map[@]}`:
+- раньше transpiler/runtime сначала считал число элементов, а потом ошибочно применял `length` к строке-счётчику, из-за чего `2` превращалось в `1`.
+- В `bashrt/expand_param.v` добавлен special-case для `count_items + ParamOpLength`, чтобы это вело себя как Bash count-items semantics, а не как `strlen`.
+- Усилено покрытие в `tests/e2e/compile_run_test.v`: теперь e2e проверяет multi-item indexed/assoc arrays и ожидает `2 2`.
+- Oracle compare в `tests/oracle/compare_test.v` тоже расширен до проверки count-items semantics.
+
+[2026-03-19 07:35:00 UTC] STATUS
+- Проверки прошли:
+- `v test /home/margo/dev/bash2v/bash2v/bashrt` -> `1 passed, 1 total`
+- `v test /home/margo/dev/bash2v/bash2v` -> `6 passed, 6 total`
+- `v test /home/margo/dev/bash2v/tests/oracle/compare_test.v` -> `1 passed, 1 total`
+- `v test /home/margo/dev/bash2v/tests` -> `3 passed, 3 total`
+
+[2026-03-19 07:35:00 UTC] DECISION
+- `${!map[@]}` для associative arrays пока не используется как strict oracle string compare, потому что порядок ключей у Bash для assoc iteration не подходит как стабильный эталон.
+- Exact oracle сравнивает только стабильные части semantics: indirect expansion, lower-all, indexed lookup, associative lookup, item counts.
+- Следующий логичный шаг: расширять parameter expansion дальше в сторону `${var:-fallback}` / `${var:=fallback}` и затем уже переходить к более сложным shell constructs.
+
+[2026-03-19 08:17:03 UTC] USER
+- `Делай следующий шаг`
+
+[2026-03-19 08:17:03 UTC] ASSISTANT SUMMARY
+- Реализована end-to-end поддержка default-value parameter expansion:
+- `${var:-fallback}` теперь парсится, lowering/codegen проходит до generated V и runtime возвращает fallback для unset/null values.
+- `${var:=fallback}` теперь дополнительно записывает fallback обратно в runtime state и затем возвращает уже установленное значение.
+- Для этого `DefaultValue` расширен флагом `assign` в AST/IR/runtime representation.
+- `bashrt/expand_param.v` теперь умеет различать unset/null slot и применять assignment semantics при `:=`.
+
+[2026-03-19 08:17:03 UTC] STATUS
+- Добавлены и проходят проверки в:
+- `bash2v/parse/parser_test.v`
+- `bash2v/lower/lower_test.v`
+- `bash2v/codegen/codegen_test.v`
+- `bash2v/bashrt/runtime_test.v`
+- `tests/e2e/compile_run_test.v`
+- Полный регресс зелёный:
+- `v test /home/margo/dev/bash2v/bash2v` -> `6 passed, 6 total`
+- `v test /home/margo/dev/bash2v/tests` -> `3 passed, 3 total`
+
+[2026-03-19 08:17:03 UTC] DECISION
+- Следующий логичный шаг: продолжать parameter expansion family в сторону `${var:+alt}` / `${var:?message}`, либо переходить к arithmetic expansion и shell conditions, но уже без возврата к parser-only work.
