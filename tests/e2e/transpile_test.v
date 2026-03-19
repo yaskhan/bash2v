@@ -8,12 +8,12 @@ fn test_transpile_writes_generated_v_file() {
     os.mkdir_all(tmp_dir) or { panic(err) }
 
     input_path := os.join_path(tmp_dir, 'input.bash')
-    output_path := os.join_path(tmp_dir, 'output.v')
+    output_path := os.join_path(tmp_dir, 'input.v')
 
     os.write_file(input_path, r'name=World
 echo "${name,,}"
 ') or { panic(err) }
-    exit_code := cli.run(['bash2v', 'transpile', input_path, '-o', output_path]) or { panic(err) }
+    exit_code := cli.run(['bash2v', input_path]) or { panic(err) }
     generated := os.read_file(output_path) or { panic(err) }
 
     assert exit_code == 0
@@ -34,7 +34,7 @@ fn test_transpile_with_bundle_runtime_writes_self_contained_bundle() {
     output_path := os.join_path(tmp_dir, 'hello.v')
 
     os.write_file(input_path, 'echo hello-bundled\n') or { panic(err) }
-    exit_code := cli.run(['bash2v', 'transpile', '--bundle-runtime', input_path, '-o', output_path]) or {
+    exit_code := cli.run(['bash2v', '-t', '--bundle-runtime', input_path]) or {
         panic(err)
     }
 
@@ -56,7 +56,7 @@ fn test_cli_run_executes_script() {
     input_path := os.join_path(tmp_dir, 'cli_run_input.bash')
     os.write_file(input_path, 'echo hello-from-cli\n') or { panic(err) }
 
-    result := os.execute('cd /home/margo/dev/bash2v && v run cmd/bash2v run ${input_path}')
+    result := os.execute('cd /home/margo/dev/bash2v && v run cmd/bash2v -r ${input_path}')
     assert result.exit_code == 0
     assert result.output == 'hello-from-cli\n'
 }

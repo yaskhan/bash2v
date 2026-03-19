@@ -131,11 +131,16 @@ pub fn run_exec(mut state State, argv []string) ! {
     emit_result(result)
 }
 
-pub fn run_exec_words(mut state State, words []Word) ! {
+pub fn eval_words_to_argv(mut state State, words []Word) ![]string {
     mut argv := []string{}
     for word in words {
         argv << eval_word_values(mut state, word)!
     }
+    return argv
+}
+
+pub fn run_exec_words(mut state State, words []Word) ! {
+    argv := eval_words_to_argv(mut state, words)!
     result := exec_external(mut state, argv)!
     emit_result(result)
 }
@@ -153,11 +158,7 @@ pub fn run_pipeline_words(mut state State, commands [][]string) ! {
 pub fn run_pipeline_word_parts(mut state State, commands [][]Word) ! {
     mut expanded := [][]string{}
     for command in commands {
-        mut argv := []string{}
-        for word in command {
-            argv << eval_word_values(mut state, word)!
-        }
-        expanded << argv
+        expanded << eval_words_to_argv(mut state, command)!
     }
     result := exec_pipeline_words(state, expanded)!
     emit_result(result)
@@ -215,21 +216,14 @@ fn eval_exec_capture(mut state State, stmt EvalExec) !ExecResult {
     for item in stmt.assignments {
         apply_eval_assignment(mut state, item)!
     }
-    mut argv := []string{}
-    for word in stmt.argv {
-        argv << eval_word_values(mut state, word)!
-    }
+    argv := eval_words_to_argv(mut state, stmt.argv)!
     return exec_external(mut state, argv)
 }
 
 fn eval_pipeline_capture(mut state State, stmt EvalPipeline) !ExecResult {
     mut commands := [][]string{}
     for item in stmt.steps {
-        mut argv := []string{}
-        for word in item.argv {
-            argv << eval_word_values(mut state, word)!
-        }
-        commands << argv
+        commands << eval_words_to_argv(mut state, item.argv)!
     }
     return exec_pipeline_words(state, commands)
 }

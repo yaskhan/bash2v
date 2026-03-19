@@ -209,7 +209,7 @@ echo $name "$value"'
 
 fn test_bash_and_transpiled_match_for_quoted_array_all_items_expansions() {
     source := r'arr=()
-arr+=( item1 "it5 ooo" )
+arr+=( item1 item2 "word3 word4" )
 printf "<%s>\n" "${arr[*]}"
 printf "<%s>\n" "${arr[@]}"'
 

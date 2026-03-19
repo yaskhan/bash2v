@@ -178,11 +178,11 @@ echo $name "$value"')
 
 fn test_generated_v_can_run_quoted_array_all_items_expansions() {
     result := transpile_and_run('generated_array_all_items.v', r'arr=()
-arr+=( item1 "it5 ooo" )
+arr+=( item1 item2 "word3 word4" )
 printf "<%s>\n" "${arr[*]}"
 printf "<%s>\n" "${arr[@]}"')
     assert result.exit_code == 0
-    assert result.output == '<item1 it5 ooo>\n<item1>\n<it5 ooo>\n'
+    assert result.output == '<item1 item2 word3 word4>\n<item1>\n<item2>\n<word3 word4>\n'
 }
 
 fn test_generated_v_can_run_single_quotes_inside_double_quotes_around_array_index() {

@@ -1,5 +1,6 @@
 module cli
 
+import flag
 import os
 import bash2v
 import bash2v.ast
@@ -40,50 +41,89 @@ pub fn run(args []string) !int {
 }
 
 fn parse_args(args []string) !Config {
-    if args.len < 2 {
-        return Config{
-            mode: 'check'
-        }
+    mut fp := flag.new_flag_parser(args)
+    fp.skip_executable()
+    fp.application('bash2v')
+    fp.arguments_description('<script>')
+
+    transpile_mode := fp.bool('transpile', `t`, false, 'transpile the input script to V',
+        flag.FlagConfig{})
+    check_mode := fp.bool('check', `c`, false, 'parse and lower the input script without writing output',
+        flag.FlagConfig{})
+    ast_mode := fp.bool('ast', `a`, false, 'print the parsed AST', flag.FlagConfig{})
+    ir_mode := fp.bool('ir', `i`, false, 'print the lowered IR', flag.FlagConfig{})
+    run_mode := fp.bool('run', `r`, false, 'transpile and execute the input script', flag.FlagConfig{})
+    bundle_runtime := fp.bool('bundle-runtime', 0, false,
+        'write bundled runtime files next to the transpiled output', flag.FlagConfig{})
+    output := fp.string('output', `o`, '', 'write generated V to this file', flag.FlagConfig{
+        val_desc: '<file>'
+    })
+    remaining := fp.finalize()!
+
+    mode := resolve_mode(transpile_mode, check_mode, ast_mode, ir_mode, run_mode)!
+    if remaining.len == 0 {
+        return error('${mode} mode requires an input script')
     }
+    if remaining.len > 1 {
+        return error('expected exactly one input script')
+    }
+
     mut cfg := Config{
-        mode: args[1]
+        mode: mode
+        input: remaining[0]
+        output: output
+        bundle_runtime: bundle_runtime
     }
-    mut i := 2
-    for i < args.len {
-        arg := args[i]
-        if arg == '--bundle-runtime' {
-            cfg = Config{
-                ...cfg
-                bundle_runtime: true
-            }
-            i++
-            continue
+
+    if cfg.mode == 'transpile' && cfg.output == '' {
+        cfg = Config{
+            ...cfg
+            output: default_output_path(cfg.input)
         }
-        if arg == '-o' && i + 1 < args.len {
-            cfg = Config{
-                ...cfg
-                output: args[i + 1]
-            }
-            i += 2
-            continue
-        }
-        if cfg.input == '' {
-            cfg = Config{
-                ...cfg
-                input: arg
-            }
-        }
-        i++
     }
+
     return cfg
+}
+
+fn resolve_mode(transpile_mode bool, check_mode bool, ast_mode bool, ir_mode bool, run_mode bool) !string {
+    mut modes := []string{}
+    if transpile_mode {
+        modes << 'transpile'
+    }
+    if check_mode {
+        modes << 'check'
+    }
+    if ast_mode {
+        modes << 'ast'
+    }
+    if ir_mode {
+        modes << 'ir'
+    }
+    if run_mode {
+        modes << 'run'
+    }
+    if modes.len > 1 {
+        return error('expected at most one mode flag')
+    }
+    if modes.len == 0 {
+        return 'transpile'
+    }
+    return modes[0]
+}
+
+fn default_output_path(input string) string {
+    if input.ends_with('.bash') {
+        return input[..input.len - 5] + '.v'
+    }
+    if input.ends_with('.sh') {
+        return input[..input.len - 3] + '.v'
+    }
+    return input + '.v'
 }
 
 fn run_transpile(cfg Config) !int {
     if cfg.input == '' {
         return error('transpile mode requires an input script')
-    }
-    if cfg.output == '' {
-        return error('transpile mode requires -o <file>')
     }
     output_dir := os.dir(cfg.output)
     if output_dir != '' && output_dir != '.' {
