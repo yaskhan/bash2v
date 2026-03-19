@@ -91,6 +91,21 @@ echo "${i}|${arr[$((i + 1))]}"')
     assert result.output == '2|6\n'
 }
 
+fn test_generated_v_can_run_condition_builtins() {
+    result := transpile_and_run('generated_conditions.v', r'test 5 -gt 3
+[ foo = foo ]
+[[ -n bar ]]
+[[ alpha < beta ]]
+echo ok')
+    assert result.exit_code == 0
+    assert result.output == 'ok\n'
+}
+
+fn test_generated_v_false_condition_exits_nonzero() {
+    result := transpile_and_run('generated_condition_false.v', r'[[ -z bar ]]')
+    assert result.exit_code != 0
+}
+
 fn transpile_and_run(filename string, source string) os.Result {
     tmp_dir := os.join_path('/home/margo/dev/bash2v', 'tests', 'e2e', 'tmp')
     os.mkdir_all(tmp_dir) or { panic(err) }

@@ -325,3 +325,38 @@
 
 [2026-03-19 09:04:14 UTC] DECISION
 - Следующий логичный шаг: shell condition surface (`test`, `[ ... ]`, `[[ ... ]]`) или control flow (`if`, `while`, `for`) поверх уже расширенных expression/assignment semantics.
+
+[2026-03-19 09:16:06 UTC] USER
+- `делаем`
+
+[2026-03-19 09:16:06 UTC] ASSISTANT SUMMARY
+- Реализован builtin execution path для:
+- `test`
+- `[ ... ]`
+- `[[ ... ]]`
+- Добавлено condition evaluation для полезного MVP-подмножества:
+- `-n`, `-z`
+- `=`, `==`, `!=`
+- `<`, `>`
+- `-eq`, `-ne`, `-gt`, `-ge`, `-lt`, `-le`
+- unary negation `!`
+- `true` и `false` тоже обрабатываются как builtins.
+- Condition semantics реализована на runtime уровне без изменения parser, потому что текущая word model уже позволяет представить `[`, `[[`, `]`, `]]` как argv-последовательности.
+
+[2026-03-19 09:16:06 UTC] STATUS
+- Добавлены и проходят проверки в:
+- `bash2v/bashrt/runtime_test.v`
+- `tests/e2e/compile_run_test.v`
+- `tests/oracle/compare_test.v`
+- Условные builtin-сценарии подтверждены e2e и oracle compare против Bash:
+- `test 5 -gt 3`
+- `[ foo = foo ]`
+- `[[ -n bar ]]`
+- `[[ alpha < beta ]]`
+- false-condition path (`[[ -z bar ]]`) тоже совпадает по status/stdout
+- Полный регресс зелёный:
+- `v test /home/margo/dev/bash2v/bash2v` -> `6 passed, 6 total`
+- `v test /home/margo/dev/bash2v/tests` -> `3 passed, 3 total`
+
+[2026-03-19 09:16:06 UTC] DECISION
+- Следующий логичный шаг: control flow (`if`, `while`, `for`) поверх уже работающих conditions, assignments, arithmetic и command execution.

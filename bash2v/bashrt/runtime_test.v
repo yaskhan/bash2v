@@ -319,3 +319,16 @@ fn test_eval_word_with_arithmetic_expansion() {
     }) or { panic(err) }
     assert value == '26'
 }
+
+fn test_exec_condition_builtin_variants() {
+    mut state := new_state()
+    result1 := exec_external(mut state, ['test', '5', '-gt', '3']) or { panic(err) }
+    result2 := exec_external(mut state, ['[', 'foo', '=', 'foo', ']']) or { panic(err) }
+    result3 := exec_external(mut state, ['[[', '-n', 'bar', ']]']) or { panic(err) }
+    result4 := exec_external(mut state, ['[[', '-z', 'bar', ']]']) or { panic(err) }
+
+    assert result1.status == 0
+    assert result2.status == 0
+    assert result3.status == 0
+    assert result4.status == 1
+}

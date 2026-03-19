@@ -79,3 +79,30 @@ echo "${i}|${arr[$((i + 1))]}"'
     assert transpiled_result.status == 0
     assert transpiled_result.stdout == bash_result.stdout
 }
+
+fn test_bash_and_transpiled_match_for_condition_builtins() {
+    source := r'test 5 -gt 3
+[ foo = foo ]
+[[ -n bar ]]
+[[ alpha < beta ]]
+echo ok'
+
+    bash_result := run_bash_source('condition_case', source) or { panic(err) }
+    transpiled_result := run_transpiled_source('condition_case', source) or { panic(err) }
+
+    assert bash_result.status == 0
+    assert transpiled_result.status == 0
+    assert transpiled_result.stdout == bash_result.stdout
+}
+
+fn test_bash_and_transpiled_match_for_false_condition() {
+    source := r'[[ -z bar ]]'
+
+    bash_result := run_bash_source('condition_false_case', source) or { panic(err) }
+    transpiled_result := run_transpiled_source('condition_false_case', source) or { panic(err) }
+
+    assert bash_result.status == 1
+    assert transpiled_result.status == 1
+    assert bash_result.stdout == ''
+    assert transpiled_result.stdout == ''
+}

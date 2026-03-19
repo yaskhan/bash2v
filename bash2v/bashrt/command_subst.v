@@ -61,6 +61,17 @@ pub fn exec_external(mut state State, argv []string) !ExecResult {
     if argv[0] == 'declare' {
         return exec_declare(mut state, argv[1..])
     }
+    if argv[0] in ['test', '[', '[['] {
+        return exec_condition(argv)
+    }
+    if argv[0] == 'true' {
+        return ExecResult{}
+    }
+    if argv[0] == 'false' {
+        return ExecResult{
+            status: 1
+        }
+    }
     cmd := argv[0]
     args := argv[1..]
     mut pipe := v_scr.new_pipe()
