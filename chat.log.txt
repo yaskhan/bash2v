@@ -295,3 +295,33 @@
 
 [2026-03-19 08:49:18 UTC] DECISION
 - Следующий логичный шаг: arithmetic assignment/indexing (`i=$((i+1))`, `arr[$((i+1))]=x`) и затем shell condition surface (`test`, `[ ... ]`, `[[ ... ]]`).
+
+[2026-03-19 09:04:14 UTC] USER
+- `Продолжаем`
+
+[2026-03-19 09:04:14 UTC] ASSISTANT SUMMARY
+- Реализована поддержка arithmetic expressions в array subscripts и arithmetic assignment path.
+- Parser теперь парсит index expressions как полноценный `Word`, а не как набор literal-токенов.
+- Это позволяет корректно обрабатывать:
+- `arr[$((i + 1))]=value`
+- `${arr[$((i + 1))]}`
+- `i=$((i + 1))`
+- Для assignment-kind heuristic добавлено распознавание arithmetic subscript как indexed-array path, чтобы `arr[$((...))]=...` не деградировал в assoc assignment.
+
+[2026-03-19 09:04:14 UTC] STATUS
+- Добавлены и проходят проверки в:
+- `bash2v/parse/parser_test.v`
+- `bash2v/lower/lower_test.v`
+- `tests/e2e/compile_run_test.v`
+- `tests/oracle/compare_test.v`
+- Arithmetic assignment/indexing подтверждён e2e и oracle compare против Bash на сценарии:
+- `i=1`
+- `i=$((i + 1))`
+- `arr[$((i + 1))]=$((i + 4))`
+- `echo "${i}|${arr[$((i + 1))]}"`
+- Полный регресс зелёный:
+- `v test /home/margo/dev/bash2v/bash2v` -> `6 passed, 6 total`
+- `v test /home/margo/dev/bash2v/tests` -> `3 passed, 3 total`
+
+[2026-03-19 09:04:14 UTC] DECISION
+- Следующий логичный шаг: shell condition surface (`test`, `[ ... ]`, `[[ ... ]]`) или control flow (`if`, `while`, `for`) поверх уже расширенных expression/assignment semantics.

@@ -65,3 +65,17 @@ echo "$((1 + 2 * 3))|$((x + y * 4))|$((-(x - 2)))"'
     assert transpiled_result.status == 0
     assert transpiled_result.stdout == bash_result.stdout
 }
+
+fn test_bash_and_transpiled_match_for_arithmetic_assignment_and_indexing() {
+    source := r'i=1
+i=$((i + 1))
+arr[$((i + 1))]=$((i + 4))
+echo "${i}|${arr[$((i + 1))]}"'
+
+    bash_result := run_bash_source('arith_index_case', source) or { panic(err) }
+    transpiled_result := run_transpiled_source('arith_index_case', source) or { panic(err) }
+
+    assert bash_result.status == 0
+    assert transpiled_result.status == 0
+    assert transpiled_result.stdout == bash_result.stdout
+}

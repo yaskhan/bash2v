@@ -40,6 +40,12 @@ fn test_parse_param_expansion_index_and_keys() {
     assert ast.word_debug(word3) == 'param(arr; count_items; op=length)'
 }
 
+fn test_parse_param_expansion_arithmetic_index() {
+    mut parser := new_parser(lex.tokenize(r'${arr[$((i + 1))]}'))
+    word := parser.parse_word() or { panic(err) }
+    assert ast.word_debug(word) == 'param(arr; index=arith(i + 1); op=noop)'
+}
+
 fn test_parse_param_expansion_default_value_and_assign() {
     mut parser1 := new_parser(lex.tokenize(r'${name:-fallback}'))
     word1 := parser1.parse_word() or { panic(err) }
@@ -148,6 +154,18 @@ fn test_parse_append_assignments() {
         } else {
             assert false
         }
+    } else {
+        assert false
+    }
+}
+
+fn test_parse_assignment_with_arithmetic_index() {
+    mut parser := new_parser(lex.tokenize(r'arr[$((i + 1))]=value'))
+    program := parser.parse_program() or { panic(err) }
+    assert ast.program_debug(program) == 'assign(arr[arith(i + 1)]=lit(value))'
+    if program.stmts[0] is ast.AssignmentStmt {
+        stmt := program.stmts[0] as ast.AssignmentStmt
+        assert stmt.assignments[0].kind == .indexed
     } else {
         assert false
     }

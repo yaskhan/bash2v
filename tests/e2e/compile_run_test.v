@@ -82,6 +82,15 @@ echo "$((1 + 2 * 3))|$((x + y * 4))|$((-(x - 2)))"')
     assert result.output == '7|13|-3\n'
 }
 
+fn test_generated_v_can_run_arithmetic_assignment_and_indexing() {
+    result := transpile_and_run('generated_arithmetic_indexing.v', r'i=1
+i=$((i + 1))
+arr[$((i + 1))]=$((i + 4))
+echo "${i}|${arr[$((i + 1))]}"')
+    assert result.exit_code == 0
+    assert result.output == '2|6\n'
+}
+
 fn transpile_and_run(filename string, source string) os.Result {
     tmp_dir := os.join_path('/home/margo/dev/bash2v', 'tests', 'e2e', 'tmp')
     os.mkdir_all(tmp_dir) or { panic(err) }

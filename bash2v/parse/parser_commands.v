@@ -128,7 +128,7 @@ fn (mut parser Parser) try_parse_assignment() ?ast.Assignment {
         parser.advance()
         index = parse_index_tokens(index_tokens)
         if idx := index {
-            kind = if is_numeric_index_word(idx) {
+            kind = if is_indexed_subscript_word(idx) {
                 ast.AssignKind.indexed
             } else {
                 ast.AssignKind.assoc
@@ -203,18 +203,26 @@ fn (mut parser Parser) parse_compound_assignment_words() ![]ast.Word {
 }
 
 fn parse_index_tokens(tokens []lex.Token) ast.Word {
-    mut parts := []ast.WordPart{}
-    for tok in tokens {
-        if tok.kind in [.whitespace, .newline] {
-            continue
+    mut nested := new_parser(tokens.clone())
+    word := nested.parse_word() or {
+        return ast.Word{}
+    }
+    return word
+}
+
+fn is_indexed_subscript_word(word ast.Word) bool {
+    if is_numeric_index_word(word) {
+        return true
+    }
+    if word.parts.len == 1 {
+        match word.parts[0] {
+            ast.ArithmeticExpansion {
+                return true
+            }
+            else {}
         }
-        parts << ast.WordPart(ast.LiteralPart{
-            text: tok.text
-        })
     }
-    return ast.Word{
-        parts: parts
-    }
+    return false
 }
 
 fn is_numeric_index_word(word ast.Word) bool {
