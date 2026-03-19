@@ -585,3 +585,25 @@
 [2026-03-19 10:32:07 UTC] DECISION
 - `--bundle-runtime` теперь является рекомендуемым способом для запуска transpiled V вне исходного checkout проекта.
 - Следующий логичный шаг: добавить отдельный build target / release profile для `bash2v_static`, либо расширять shell surface area дальше (`&&` / `||`, functions, `case`).
+
+[2026-03-19 11:14:05 UTC] USER
+- Запрос: сделать `make static`.
+
+[2026-03-19 11:14:05 UTC] ASSISTANT SUMMARY
+- Добавлен корневой `Makefile`.
+- В нём заведены цели:
+- `build` -> `./bin/bash2v`
+- `static` -> `./bin/bash2v_static`
+- `test` -> полный прогон `./bash2v` и `./tests`
+- `README.md` обновлён: теперь build-section документирует `make static` как рекомендуемый target для portable binary.
+
+[2026-03-19 11:14:05 UTC] STATUS
+- Выполнена реальная проверка:
+- `make static`
+- результат: создан `./bin/bash2v_static`
+- В `bin/` подтверждены оба артефакта:
+- `bash2v`
+- `bash2v_static`
+
+[2026-03-19 11:14:05 UTC] DECISION
+- `make static` теперь является кратким documented способом собрать переносимый бинарник, который затем можно использовать вместе с `transpile --bundle-runtime`.

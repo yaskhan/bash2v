@@ -28,6 +28,18 @@ v -o ./bin/bash2v ./cmd/bash2v
 
 Note: in this repository the path `./bash2v` is already occupied by the source module directory `./bash2v/`, so the practical binary path here is `./bin/bash2v`.
 
+With `make`, the portable static-bundle-oriented build target is:
+
+```bash
+make static
+```
+
+It writes:
+
+```text
+./bin/bash2v_static
+```
+
 ## Transpile And Run
 
 Given a Bash script `b.sh`, transpile it into `b.v` like this:
