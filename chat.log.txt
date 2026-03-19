@@ -517,3 +517,71 @@
 [2026-03-19 09:59:21 UTC] DECISION
 - На текущем этапе покрыты самые полезные control-flow gaps поверх уже существующих `if`/`while`/`for`.
 - Следующий логичный шаг: shell functions, либо `case`, либо `&&` / `||` short-circuit lists. Из этих вариантов наиболее продуктивным следующим выглядит `&&` / `||`, потому что оно часто встречается и не требует ещё одного крупного runtime model.
+
+[2026-03-19 10:05:48 UTC] USER
+- Вопрос: как, имея бинарник `./bash2v`, взять Bash-скрипт `b.sh`, транспилировать его в `b.v`, что ещё нужно запустить для `v run b.v`, что доустановить и как это запускать.
+- Запрос: записать подсказку в `README.md`.
+
+[2026-03-19 10:05:48 UTC] ASSISTANT SUMMARY
+- Проверен реальный CLI в `bash2v/cli/cli.v`:
+- рабочая команда транспиляции: `bash2v transpile <input> -o <output>`
+- также есть `bash2v run <input>` для прямого исполнения без промежуточного `.v`
+- Проверен generated V:
+- он импортирует `bash2v.bashrt`
+- runtime импортирует `v_scr`
+- Выполнена end-to-end проверка:
+- `./bin/bash2v transpile ./examples/basic.bash -o ./examples/basic.generated.v`
+- `v run ./examples/basic.generated.v`
+- результат: `hello`
+
+[2026-03-19 10:05:48 UTC] STATUS
+- `README.md` обновлён реальной подсказкой по:
+- сборке CLI
+- `b.sh -> b.v`
+- `v run ./b.v`
+- требованиям по окружению
+- direct execution mode
+- Зафиксировано важное ограничение текущего layout:
+- в корне репозитория путь `./bash2v` уже занят каталогом модуля `./bash2v/`, поэтому практический путь бинарника внутри репозитория: `./bin/bash2v`
+
+[2026-03-19 10:05:48 UTC] DECISION
+- Для обычного checkout этого репозитория дополнительные `v install ...` не нужны:
+- достаточно установленного компилятора `v`
+- запускать `v run ./b.v` нужно из корня репозитория, где V видит локальные модули `./bash2v/` и `./v_scr/`
+- Если generated `.v` переносится вне этого checkout, тогда `bash2v.bashrt` и `v_scr` нужно отдельно сделать доступными в V module search path.
+
+[2026-03-19 10:32:07 UTC] USER
+- Запрос: реализовать `--bundle-runtime`, чтобы после переноса одного бинарника на другой сервер можно было транспилировать `hello.sh` и получить самодостаточный каталог для `v run hello.v`.
+
+[2026-03-19 10:32:07 UTC] ASSISTANT SUMMARY
+- Реализован `--bundle-runtime` в CLI.
+- В бинарник встроены текущие runtime sources через `$embed_file(...)`:
+- минимальный dependency closure `bash2v` для generated V:
+- `bash2v/bash2v.v`
+- `bash2v/ast/*`
+- `bash2v/lower/*`
+- `bash2v/bashrt/*`
+- vendored `v_scr/*`
+- При `transpile --bundle-runtime -o ./out/hello.v` CLI теперь:
+- пишет `hello.v`
+- раскладывает рядом `./out/bash2v/...`
+- раскладывает рядом `./out/v_scr/...`
+- пишет `./out/v.mod`
+- Это означает, что на удалённом сервере достаточно:
+- одного бинарника `bash2v`
+- компилятора `v`
+- и системных внешних команд, которые использует сам Bash-скрипт
+
+[2026-03-19 10:32:07 UTC] STATUS
+- Добавлен e2e test в `tests/e2e/transpile_test.v`, который подтверждает полный portable flow:
+- создаётся временный `hello.sh`
+- вызывается `cli.run(['bash2v', 'transpile', '--bundle-runtime', ...])`
+- затем выполняется `cd <tmpdir> && v run ./hello.v`
+- результат совпадает: `hello-bundled`
+- Полный регресс зелёный:
+- `v test /home/margo/dev/bash2v/bash2v` -> `6 passed, 6 total`
+- `v test /home/margo/dev/bash2v/tests` -> `3 passed, 3 total`
+
+[2026-03-19 10:32:07 UTC] DECISION
+- `--bundle-runtime` теперь является рекомендуемым способом для запуска transpiled V вне исходного checkout проекта.
+- Следующий логичный шаг: добавить отдельный build target / release profile для `bash2v_static`, либо расширять shell surface area дальше (`&&` / `||`, functions, `case`).

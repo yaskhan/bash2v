@@ -3,14 +3,16 @@ module cli
 import os
 import bash2v
 import bash2v.ast
+import bash2v.bundle
 import bash2v.lower
 import bash2v.support
 
 pub struct Config {
 pub:
-    mode   string
-    input  string
-    output string
+    mode           string
+    input          string
+    output         string
+    bundle_runtime bool
 }
 
 pub fn run(args []string) !int {
@@ -49,6 +51,14 @@ fn parse_args(args []string) !Config {
     mut i := 2
     for i < args.len {
         arg := args[i]
+        if arg == '--bundle-runtime' {
+            cfg = Config{
+                ...cfg
+                bundle_runtime: true
+            }
+            i++
+            continue
+        }
         if arg == '-o' && i + 1 < args.len {
             cfg = Config{
                 ...cfg
@@ -75,9 +85,17 @@ fn run_transpile(cfg Config) !int {
     if cfg.output == '' {
         return error('transpile mode requires -o <file>')
     }
+    output_dir := os.dir(cfg.output)
+    if output_dir != '' && output_dir != '.' {
+        os.mkdir_all(output_dir)!
+    }
     source := os.read_file(cfg.input)!
     result := bash2v.transpile_source(source)!
     os.write_file(cfg.output, result.generated)!
+    if cfg.bundle_runtime {
+        bundle_root := if output_dir == '' { '.' } else { output_dir }
+        bundle.write_runtime_bundle(bundle_root)!
+    }
     return 0
 }
 
