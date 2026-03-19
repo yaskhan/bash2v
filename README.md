@@ -10,3 +10,18 @@ The project is built around:
 - `v_scr` as the process and orchestration backend.
 
 The repository is currently in scaffold stage.
+
+## Build
+
+To build the `bash2v` binary from the repository root:
+
+```bash
+mkdir -p bin
+v -prod -o ./bin/bash2v ./cmd/bash2v
+```
+
+Without `-prod`, a debug build is:
+
+```bash
+v -o ./bin/bash2v ./cmd/bash2v
+```
