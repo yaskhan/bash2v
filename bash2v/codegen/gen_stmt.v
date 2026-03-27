@@ -1,5 +1,6 @@
 module codegen
 
+import strings
 import bash2v.lower
 
 pub fn gen_stmt(stmt lower.StmtIR) string {
@@ -204,9 +205,21 @@ fn gen_case(stmt lower.CaseIR) string {
 }
 
 fn indent_block(input string, prefix string) string {
-    mut lines := []string{}
-    for line in input.split('\n') {
-        lines << prefix + line
+    if input == '' {
+        return ''
     }
-    return lines.join('\n')
+    mut sb := strings.new_builder(input.len + (input.count('\n') + 1) * prefix.len)
+    mut start := 0
+    for i := 0; i < input.len; i++ {
+        if input[i] == `\n` {
+            sb.write_string(prefix)
+            sb.write_string(input[start..i + 1])
+            start = i + 1
+        }
+    }
+    if start < input.len {
+        sb.write_string(prefix)
+        sb.write_string(input[start..])
+    }
+    return sb.str()
 }
