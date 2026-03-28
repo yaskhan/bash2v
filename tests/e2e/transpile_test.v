@@ -44,19 +44,24 @@ fn test_transpile_with_bundle_runtime_writes_self_contained_bundle() {
     assert os.exists(os.join_path(tmp_dir, 'bash2v', 'bashrt', 'state.v'))
     assert os.exists(os.join_path(tmp_dir, 'v_scr', 'pipeline.v'))
 
-    result := os.execute('cd ${tmp_dir} && v run ./hello.v')
+    vexe := os.getenv('VEXE')
+    v_cmd := if vexe != '' { vexe } else { 'v' }
+    result := os.execute('cd ${tmp_dir} && ${v_cmd} run ./hello.v')
     assert result.exit_code == 0
     assert result.output == 'hello-bundled\n'
 }
 
 fn test_cli_run_executes_script() {
-    tmp_dir := os.join_path('/home/margo/dev/bash2v', 'tests', 'e2e', 'tmp')
+    wd := os.getwd()
+    tmp_dir := os.join_path(wd, 'tests', 'e2e', 'tmp')
     os.mkdir_all(tmp_dir) or { panic(err) }
 
     input_path := os.join_path(tmp_dir, 'cli_run_input.bash')
     os.write_file(input_path, 'echo hello-from-cli\n') or { panic(err) }
 
-    result := os.execute('cd /home/margo/dev/bash2v && v run cmd/bash2v -r ${input_path}')
+    vexe := os.getenv('VEXE')
+    v_cmd := if vexe != '' { vexe } else { 'v' }
+    result := os.execute('cd ${wd} && ${v_cmd} run cmd/bash2v -r ${input_path}')
     assert result.exit_code == 0
     assert result.output == 'hello-from-cli\n'
 }
