@@ -1,5 +1,7 @@
 module bashrt
 
+import strings
+
 pub struct Word {
 pub:
     fragments []WordFragment
@@ -133,7 +135,7 @@ fn finalize_expanded_words(words []ExpandedWord) []string {
 
 fn finalize_expanded_word(word ExpandedWord) []string {
     mut fields := []string{}
-    mut current := ''
+    mut current := strings.new_builder(32)
     mut has_current := false
     mut current_quoted := false
 
@@ -142,7 +144,7 @@ fn finalize_expanded_word(word ExpandedWord) []string {
             if !has_current {
                 has_current = true
             }
-            current += part.text
+            current.write_string(part.text)
             current_quoted = true
             continue
         }
@@ -156,13 +158,13 @@ fn finalize_expanded_word(word ExpandedWord) []string {
                 if !has_current {
                     has_current = true
                 }
-                current += part.text[start..idx]
+                current.write_string(part.text[start..idx])
             }
             if has_current {
-                if current != '' || current_quoted {
-                    fields << current
+                if current.len > 0 || current_quoted {
+                    fields << current.str()
                 }
-                current = ''
+                current.clear()
                 has_current = false
                 current_quoted = false
             }
@@ -172,12 +174,14 @@ fn finalize_expanded_word(word ExpandedWord) []string {
             if !has_current {
                 has_current = true
             }
-            current += part.text[start..]
+            current.write_string(part.text[start..])
         }
     }
 
-    if has_current && (current != '' || current_quoted) {
-        fields << current
+    if has_current {
+        if current.len > 0 || current_quoted {
+            fields << current.str()
+        }
     }
     return fields
 }

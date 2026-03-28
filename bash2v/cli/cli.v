@@ -182,7 +182,9 @@ fn run_execute(cfg Config) !int {
     os.mkdir_all(tmp_dir)!
     generated_path := os.join_path(tmp_dir, 'generated_run.v')
     os.write_file(generated_path, result.generated)!
-    run_result := os.execute('cd ${os.getwd()} && v run ${generated_path}')
+    vexe := os.getenv('VEXE')
+    v_cmd := if vexe != '' { vexe } else { 'v' }
+    run_result := os.execute('cd ${os.getwd()} && ${v_cmd} run ${generated_path}')
     if run_result.output != '' {
         print(run_result.output)
     }
