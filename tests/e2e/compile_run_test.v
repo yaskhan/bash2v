@@ -246,11 +246,12 @@ fn test_generated_v_can_run_single_quotes_inside_double_quotes_around_array_inde
 }
 
 fn transpile_and_run(filename string, source string) os.Result {
-    tmp_dir := os.join_path('/home/margo/dev/bash2v', 'tests', 'e2e', 'tmp')
+    base_dir := os.getwd()
+    tmp_dir := os.join_path(base_dir, 'tests', 'e2e', 'tmp')
     os.mkdir_all(tmp_dir) or { panic(err) }
 
     generated_path := os.join_path(tmp_dir, filename)
     transpiled := bash2v.transpile_source(source) or { panic(err) }
     os.write_file(generated_path, transpiled.generated) or { panic(err) }
-    return os.execute('cd /home/margo/dev/bash2v && v run tests/e2e/tmp/${filename}')
+    return os.execute('cd ${base_dir} && v run tests/e2e/tmp/${filename}')
 }

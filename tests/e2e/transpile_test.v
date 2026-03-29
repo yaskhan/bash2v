@@ -50,13 +50,14 @@ fn test_transpile_with_bundle_runtime_writes_self_contained_bundle() {
 }
 
 fn test_cli_run_executes_script() {
-    tmp_dir := os.join_path('/home/margo/dev/bash2v', 'tests', 'e2e', 'tmp')
+    base_dir := os.getwd()
+    tmp_dir := os.join_path(base_dir, 'tests', 'e2e', 'tmp')
     os.mkdir_all(tmp_dir) or { panic(err) }
 
     input_path := os.join_path(tmp_dir, 'cli_run_input.bash')
     os.write_file(input_path, 'echo hello-from-cli\n') or { panic(err) }
 
-    result := os.execute('cd /home/margo/dev/bash2v && v run cmd/bash2v -r ${input_path}')
+    result := os.execute('cd ${base_dir} && ./bin/bash2v -r ${input_path}')
     assert result.exit_code == 0
     assert result.output == 'hello-from-cli\n'
 }
