@@ -44,19 +44,40 @@ fn test_transpile_with_bundle_runtime_writes_self_contained_bundle() {
     assert os.exists(os.join_path(tmp_dir, 'bash2v', 'bashrt', 'state.v'))
     assert os.exists(os.join_path(tmp_dir, 'v_scr', 'pipeline.v'))
 
-    result := os.execute('cd ${tmp_dir} && v run ./hello.v')
+    mut proc := os.new_process('v')
+    proc.set_args(['run', './hello.v'])
+    proc.set_work_folder(tmp_dir)
+    proc.set_redirect_stdio()
+    proc.run()
+    proc.wait()
+    result := os.Result{
+        exit_code: proc.code
+        output: proc.stdout_slurp()
+    }
+    proc.close()
     assert result.exit_code == 0
     assert result.output == 'hello-bundled\n'
 }
 
 fn test_cli_run_executes_script() {
-    tmp_dir := os.join_path('/home/margo/dev/bash2v', 'tests', 'e2e', 'tmp')
+    base_dir := os.getwd()
+    tmp_dir := os.join_path(base_dir, 'tests', 'e2e', 'tmp')
     os.mkdir_all(tmp_dir) or { panic(err) }
 
     input_path := os.join_path(tmp_dir, 'cli_run_input.bash')
     os.write_file(input_path, 'echo hello-from-cli\n') or { panic(err) }
 
-    result := os.execute('cd /home/margo/dev/bash2v && v run cmd/bash2v -r ${input_path}')
+    mut process := os.new_process('v')
+    process.set_args(['run', 'cmd/bash2v', '-r', input_path])
+    process.set_work_folder(os.getwd())
+    process.set_redirect_stdio()
+    process.run()
+    process.wait()
+    result := os.Result{
+        exit_code: process.code
+        output: process.stdout_slurp()
+    }
+    process.close()
     assert result.exit_code == 0
     assert result.output == 'hello-from-cli\n'
 }

@@ -1,5 +1,7 @@
 module bashrt
 
+import strings
+
 pub struct Word {
 pub:
     fragments []WordFragment
@@ -131,9 +133,14 @@ fn finalize_expanded_words(words []ExpandedWord) []string {
     return out
 }
 
+// finalize_expanded_word converts an ExpandedWord (list of quoted/unquoted parts)
+// into a final list of shell fields. It performs field splitting on unquoted parts
+// using IFS whitespace (space, tab, newline).
 fn finalize_expanded_word(word ExpandedWord) []string {
     mut fields := []string{}
-    mut current := ''
+    // ⚡ Bolt Optimization: Using strings.Builder to avoid O(N^2) allocations
+    // from repeated string concatenation in loops.
+    mut current := strings.new_builder(128)
     mut has_current := false
     mut current_quoted := false
 
@@ -142,7 +149,7 @@ fn finalize_expanded_word(word ExpandedWord) []string {
             if !has_current {
                 has_current = true
             }
-            current += part.text
+            current.write_string(part.text)
             current_quoted = true
             continue
         }
@@ -156,13 +163,15 @@ fn finalize_expanded_word(word ExpandedWord) []string {
                 if !has_current {
                     has_current = true
                 }
-                current += part.text[start..idx]
+                current.write_string(part.text[start..idx])
             }
             if has_current {
-                if current != '' || current_quoted {
-                    fields << current
+                if current.len > 0 || current_quoted {
+                    fields << current.str()
                 }
-                current = ''
+                unsafe {
+                    current.reset()
+                }
                 has_current = false
                 current_quoted = false
             }
@@ -172,12 +181,12 @@ fn finalize_expanded_word(word ExpandedWord) []string {
             if !has_current {
                 has_current = true
             }
-            current += part.text[start..]
+            current.write_string(part.text[start..])
         }
     }
 
-    if has_current && (current != '' || current_quoted) {
-        fields << current
+    if has_current && (current.len > 0 || current_quoted) {
+        fields << current.str()
     }
     return fields
 }
