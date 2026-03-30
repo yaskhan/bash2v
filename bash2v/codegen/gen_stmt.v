@@ -204,9 +204,5 @@ fn gen_case(stmt lower.CaseIR) string {
 }
 
 fn indent_block(input string, prefix string) string {
-    mut lines := []string{}
-    for line in input.split('\n') {
-        lines << prefix + line
-    }
-    return lines.join('\n')
+    return prefix + input.replace('\n', '\n' + prefix)
 }
