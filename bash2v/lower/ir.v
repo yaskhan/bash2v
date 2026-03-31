@@ -305,15 +305,15 @@ pub fn stmt_ir_debug(stmt StmtIR) string {
             'pipeline(${steps.join(" | ")})'
         }
         AndOrIR {
-            mut out := program_ir_debug(stmt.first)
+            mut out := [program_ir_debug(stmt.first)]
             for item in stmt.items {
                 op := match item.op {
                     .and_if { '&&' }
                     .or_if { '||' }
                 }
-                out += ' ${op} ${program_ir_debug(item.program)}'
+                out << ' ${op} ${program_ir_debug(item.program)}'
             }
-            'andor(${out})'
+            'andor(${out.join("")})'
         }
         IfIR {
             mut cond := []string{}

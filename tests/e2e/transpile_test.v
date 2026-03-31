@@ -59,9 +59,17 @@ fn test_cli_run_executes_script() {
     input_path := os.join_path(tmp_dir, 'cli_run_input.bash')
     os.write_file(input_path, 'echo hello-from-cli\n') or { panic(err) }
 
-    v_exe := os.getenv('VEXE')
-    mut cmd := if v_exe == '' { 'v' } else { v_exe }
-    result := os.execute('${cmd} run cmd/bash2v -r ${input_path}')
+    mut process := os.new_process('v')
+    process.set_args(['run', 'cmd/bash2v', '-r', input_path])
+    process.set_work_folder(os.getwd())
+    process.set_redirect_stdio()
+    process.run()
+    process.wait()
+    result := os.Result{
+        exit_code: process.code
+        output: process.stdout_slurp()
+    }
+    process.close()
     assert result.exit_code == 0
     assert result.output == 'hello-from-cli\n'
 }

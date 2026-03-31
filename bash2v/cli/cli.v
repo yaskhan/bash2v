@@ -182,11 +182,21 @@ fn run_execute(cfg Config) !int {
     os.mkdir_all(tmp_dir)!
     generated_path := os.join_path(tmp_dir, 'generated_run.v')
     os.write_file(generated_path, result.generated)!
-    v_exe := os.getenv('VEXE')
-    mut cmd := if v_exe == '' { 'v' } else { v_exe }
-    run_result := os.execute('cd ${os.getwd()} && ${cmd} run ${generated_path}')
-    if run_result.output != '' {
-        print(run_result.output)
+    mut process := os.new_process('v')
+    process.set_args(['run', generated_path])
+    process.set_work_folder(os.getwd())
+    process.set_redirect_stdio()
+    process.run()
+    process.wait()
+    output := process.stdout_slurp()
+    if output != '' {
+        print(output)
     }
-    return run_result.exit_code
+    error_output := process.stderr_slurp()
+    if error_output != '' {
+        eprint(error_output)
+    }
+    exit_code := process.code
+    process.close()
+    return exit_code
 }

@@ -253,9 +253,16 @@ fn transpile_and_run(filename string, source string) os.Result {
     generated_path := os.join_path(tmp_dir, filename)
     transpiled := bash2v.transpile_source(source) or { panic(err) }
     os.write_file(generated_path, transpiled.generated) or { panic(err) }
-    v_exe := os.getenv('VEXE')
-    if v_exe == '' {
-        return os.execute('v run tests/e2e/tmp/${filename}')
+    mut process := os.new_process('v')
+    process.set_args(['run', os.join_path('tests', 'e2e', 'tmp', filename)])
+    process.set_work_folder(os.getwd())
+    process.set_redirect_stdio()
+    process.run()
+    process.wait()
+    res := os.Result{
+        exit_code: process.code
+        output: process.stdout_slurp()
     }
-    return os.execute('${v_exe} run tests/e2e/tmp/${filename}')
+    process.close()
+    return res
 }
