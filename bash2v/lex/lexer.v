@@ -62,6 +62,9 @@ pub fn (mut lexer Lexer) next_token() Token {
     if ch == `|` && lexer.peek(1) == `|` {
         return lexer.scan_one(.pipe_pipe, 2)
     }
+    if ch == `#` && (lexer.pos == 0 || is_horizontal_space(lexer.peek(-1)) || lexer.peek(-1) == `\n`) {
+        return lexer.scan_comment()
+    }
     return match ch {
         `$` { lexer.scan_one(.dollar, 1) }
         `(` { lexer.scan_one(.paren_open, 1) }
@@ -88,6 +91,19 @@ fn (lexer Lexer) peek(offset int) u8 {
 
 fn (mut lexer Lexer) scan_newline() Token {
     return lexer.scan_one(.newline, 1)
+}
+
+fn (mut lexer Lexer) scan_comment() Token {
+    start_idx := lexer.pos
+    start_pos := lexer.position
+    for lexer.pos < lexer.source.len && lexer.peek(0) != `\n` {
+        lexer.bump()
+    }
+    return Token{
+        kind: .comment
+        text: lexer.source[start_idx..lexer.pos]
+        span: support.new_span(start_pos, lexer.position)
+    }
 }
 
 fn (mut lexer Lexer) scan_whitespace() Token {

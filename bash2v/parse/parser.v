@@ -24,6 +24,7 @@ pub fn (mut parser Parser) parse_program() !ast.Program {
         if parser.done() {
             break
         }
+        pos_before := parser.pos
         list := parser.parse_list()!
         if list.items.len == 1 {
             stmts << list.items[0]
@@ -31,6 +32,9 @@ pub fn (mut parser Parser) parse_program() !ast.Program {
             stmts << ast.Stmt(list)
         }
         parser.skip_statement_separators()
+        if parser.pos == pos_before && !parser.done() {
+            parser.advance()
+        }
     }
     return ast.Program{
         stmts: stmts
@@ -83,7 +87,7 @@ fn (mut parser Parser) skip_inline_layout() {
 fn (mut parser Parser) skip_statement_separators() {
     for !parser.done() {
         tok := parser.current()
-        if tok.kind !in [.whitespace, .newline, .semicolon] {
+        if tok.kind !in [.whitespace, .newline, .semicolon, .comment] {
             break
         }
         parser.advance()
@@ -99,9 +103,9 @@ fn (mut parser Parser) expect(kind lex.TokenKind) !lex.Token {
 }
 
 fn (parser Parser) word_boundary(tok lex.Token) bool {
-    return tok.kind in [.eof, .newline, .whitespace, .pipe, .pipe_pipe, .amp, .amp_amp, .semicolon]
+    return tok.kind in [.eof, .newline, .whitespace, .pipe, .pipe_pipe, .amp, .amp_amp, .semicolon, .comment]
 }
 
 fn (parser Parser) command_boundary(tok lex.Token) bool {
-    return tok.kind in [.eof, .newline, .semicolon, .pipe, .pipe_pipe, .amp, .amp_amp, .paren_close]
+    return tok.kind in [.eof, .newline, .semicolon, .pipe, .pipe_pipe, .amp, .amp_amp, .paren_close, .comment]
 }

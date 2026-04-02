@@ -213,6 +213,7 @@ fn (parser Parser) case_body_boundary_ahead() bool {
             offset++
             continue
         }
+        if tok.kind == .eof { break }
         return (tok.kind == .semicolon && parser.peek(offset + 1).kind == .semicolon)
             || (tok.kind == .word && tok.text == 'esac')
     }
