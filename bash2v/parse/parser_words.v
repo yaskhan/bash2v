@@ -54,14 +54,14 @@ pub fn (mut parser Parser) parse_word_part() !ast.WordPart {
         .dollar {
             parser.parse_plain_dollar_part()
         }
-        else {
+        .paren_open, .paren_close, .brace_open, .brace_close, .bracket_open, .bracket_close, .pipe, .pipe_pipe, .amp, .amp_amp, .semicolon, .equals {
             parser.advance()
-            if tok.kind in [.paren_open, .paren_close, .brace_open, .brace_close, .bracket_open, .bracket_close, .pipe, .pipe_pipe, .amp, .amp_amp, .semicolon, .equals, .dollar] {
-                return ast.WordPart(ast.LiteralPart{
-                    text: tok.text
-                })
-            }
-            return support.new_error('unexpected token in word: ${tok.kind}', tok.span)
+            ast.WordPart(ast.LiteralPart{
+                text: tok.text
+            })
+        }
+        else {
+            return support.new_error('unexpected token in word: ${tok.kind} ("${tok.text}")', tok.span)
         }
     }
 }
