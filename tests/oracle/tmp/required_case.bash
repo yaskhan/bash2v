@@ -1,1 +1,0 @@
-echo "${missing:?required-name}"

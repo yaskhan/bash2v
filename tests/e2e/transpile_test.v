@@ -60,7 +60,8 @@ fn test_transpile_with_bundle_runtime_writes_self_contained_bundle() {
 }
 
 fn test_cli_run_executes_script() {
-    tmp_dir := os.join_path('/app', 'tests', 'e2e', 'tmp')
+    base_dir := os.getwd()
+    tmp_dir := os.join_path(base_dir, 'tests', 'e2e', 'tmp')
     os.mkdir_all(tmp_dir) or { panic(err) }
 
     input_path := os.join_path(tmp_dir, 'cli_run_input.bash')
