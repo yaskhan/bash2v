@@ -35,7 +35,8 @@ pub fn run_bash_source(filename string, source string) !OracleResult {
 }
 
 pub fn run_transpiled_source(filename string, source string) !OracleResult {
-    tmp_dir := os.join_path('/app', 'tests', 'oracle', 'tmp')
+    cwd := os.getwd()
+    tmp_dir := os.join_path(cwd, 'tests', 'oracle', 'tmp')
     os.mkdir_all(tmp_dir)!
     generated_path := os.join_path(tmp_dir, '${filename}.v')
     stdout_path := os.join_path(tmp_dir, '${filename}.v.out')
